@@ -1,0 +1,44 @@
+{
+  "expo": {
+    "name": "Margin",
+    "slug": "margin-journal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F4EFE4"
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.margin.journal"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#F4EFE4"
+      },
+      "package": "com.margin.journal"
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Margin uses your photos so you can attach sketches and reference images to an idea."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#2C6DA8"
+        }
+      ]
+    ]
+  }
+}
