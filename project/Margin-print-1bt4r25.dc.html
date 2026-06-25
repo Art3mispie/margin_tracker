@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style data-omelette-print-defaults>
+@media print {
+  @page { margin: 0.5in; }
+  h1, h2, h3, h4, h5, h6 { break-after: avoid; }
+  figure, table, pre, blockquote, img, svg, tr, [class~="card" i] { break-inside: avoid; }
+  img, svg { max-width: 100%; }
+  p { orphans: 3; widows: 3; }
+}
+</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&amp;family=Hanken+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<script src="./image-slot.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  .scrollarea { scrollbar-width: none; -ms-overflow-style: none; }
+  .scrollarea::-webkit-scrollbar { display: none; width: 0; height: 0; }
+  @keyframes sheetUp { from { transform: translateY(102%); } to { transform: translateY(0); } }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes popIn { from { opacity: 0; transform: translateY(6px) scale(.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+  textarea, input, button { font-family: inherit; }
+  image-slot { display:block; width:100%; height:100%; }
+</style>
+</helmet>
+
+<div style="--bg:{{ t.bg }};--surface:{{ t.surface }};--ink:{{ t.ink }};--ink-soft:{{ t.inkSoft }};--ink-faint:{{ t.inkFaint }};--line:{{ t.line }};--accent:{{ t.accent }};--accent-ink:{{ t.accentInk }};--accent-soft:{{ t.accentSoft }};--fdisp:{{ t.fdisp }};--fui:{{ t.fui }};--canvas:{{ t.canvas }};--sky:{{ t.sky }};--sun:{{ t.sun }};--wave1:{{ t.wave1 }};--wave2:{{ t.wave2 }};--wave3:{{ t.wave3 }};--sand:{{ t.sand }};--boat:{{ t.boat }};--sail:{{ t.sail }}; min-height:100vh; width:100%; background:var(--canvas); display:flex; align-items:center; justify-content:center; padding:40px 20px; font-family:var(--fui); transition:background .4s ease;">
+
+  <div style="position:relative; width:392px; height:844px; background:var(--bg); border-radius:46px; box-shadow:0 1px 0 rgba(255,255,255,.6) inset, 0 30px 70px -20px rgba(40,38,28,.32), 0 6px 18px -8px rgba(40,38,28,.25); overflow:hidden; border:1px solid rgba(0,0,0,.06); transition:background .4s ease;">
+
+    <!-- status bar -->
+    <div style="position:absolute; top:0; left:0; right:0; height:52px; display:flex; align-items:flex-end; justify-content:space-between; padding:0 30px 8px; z-index:30; pointer-events:none;">
+      <div style="font-size:14px; font-weight:600; color:var(--ink); letter-spacing:.2px;">9:41</div>
+      <div style="display:flex; gap:6px; align-items:center; color:var(--ink);">
+        <svg width="17" height="11" viewBox="0 0 17 11" fill="currentColor"><rect x="0" y="6" width="3" height="5" rx="1"></rect><rect x="4.5" y="4" width="3" height="7" rx="1"></rect><rect x="9" y="2" width="3" height="9" rx="1"></rect><rect x="13.5" y="0" width="3" height="11" rx="1"></rect></svg>
+        <svg width="22" height="11" viewBox="0 0 24 12" fill="none"><rect x="1" y="1" width="20" height="10" rx="3" stroke="currentColor" stroke-opacity=".5"></rect><rect x="2.5" y="2.5" width="15" height="7" rx="1.5" fill="currentColor"></rect><rect x="22" y="4" width="1.6" height="4" rx=".8" fill="currentColor" fill-opacity=".5"></rect></svg>
+      </div>
+    </div>
+
+    <div class="scrollarea" ref="{{ scrollRef }}" style="position:absolute; inset:0; overflow-y:auto; padding:52px 0 100px;">
+
+      <!-- ============ TODAY ============ -->
+      <sc-if value="{{ showToday }}" hint-placeholder-val="{{ true }}">
+      <div style="position:relative;">
+        <!-- ocean background: reversed depth, dark at top, uses theme vars -->
+        <div ref="{{ oceanRef }}" style="position:absolute; top:-52px; left:0; right:0; height:380px; overflow:hidden; z-index:0; pointer-events:none;">
+          <svg viewBox="0 0 392 380" width="100%" height="100%" preserveAspectRatio="none" style="display:block;">
+            <defs>
+              <linearGradient id="ocnFade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0.7" stop-color="var(--bg)" stop-opacity="0"></stop>
+                <stop offset="1" stop-color="var(--bg)" stop-opacity="1"></stop>
+              </linearGradient>
+            </defs>
+            <!-- sky strip: keeps status bar readable -->
+            <rect x="0" y="0" width="392" height="380" fill="var(--sky)"></rect>
+            <!-- zone 1: deep (darkest, top) -->
+            <path d="M0 58 Q70 50 140 58 Q210 66 280 54 Q340 46 392 56 L392 380 L0 380 Z" fill="var(--wave3)"></path>
+            <!-- zone 2: mid -->
+            <path d="M0 152 Q80 144 160 152 Q240 160 320 148 Q360 142 392 150 L392 380 L0 380 Z" fill="var(--wave2)"></path>
+            <!-- zone 3: light -->
+            <path d="M0 246 Q90 238 180 246 Q270 254 392 242 L392 380 L0 380 Z" fill="var(--wave1)"></path>
+            <!-- wave divider lines -->
+            <path d="M0 58 Q70 50 140 58 Q210 66 280 54 Q340 46 392 56" stroke="rgba(255,255,255,0.22)" stroke-width="1.3" fill="none" stroke-linecap="round"></path>
+            <path d="M0 152 Q80 144 160 152 Q240 160 320 148 Q360 142 392 150" stroke="rgba(255,255,255,0.15)" stroke-width="1" fill="none" stroke-linecap="round"></path>
+            <path d="M0 246 Q90 238 180 246 Q270 254 392 242" stroke="rgba(255,255,255,0.1)" stroke-width="1" fill="none" stroke-linecap="round"></path>
+            <!-- fade into page bg -->
+            <rect x="0" y="0" width="392" height="380" fill="url(#ocnFade)"></rect>
+          </svg>
+        </div>
+
+        <div style="position:relative; z-index:1; padding:14px 22px 0;">
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:10px;">
+          <div>
+            <div style="font-size:13px; color:rgba(255,255,255,.82); font-weight:600; letter-spacing:.5px; text-transform:uppercase; text-shadow:0 1px 10px rgba(18,48,72,.5);">{{ todayLabel }}</div>
+            <div style="font-family:var(--fdisp); font-size:32px; line-height:1.12; color:#fff; margin-top:5px; letter-spacing:-.2px; text-shadow:0 2px 16px rgba(14,42,66,.55);">{{ greeting }}</div>
+          </div>
+          <button onClick="{{ goSettings }}" style="flex:none; width:38px; height:38px; border-radius:50%; border:1px solid rgba(255,255,255,.45); background:rgba(255,255,255,.2); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); display:flex; align-items:center; justify-content:center; cursor:pointer; margin-top:4px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          </button>
+        </div>
+
+        <div style="height: 5px"></div>
+        <sc-if value="{{ loggedToday }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px; padding:16px 18px; background:var(--surface); border:1px solid var(--line); border-radius:18px; display:flex; align-items:center; gap:13px;">
+            <div style="flex:none; width:34px; height:34px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+            </div>
+            <div style="line-height:1.3;">
+              <div style="font-size:15px; color:var(--ink); font-weight:600;">Captured today</div>
+              <div style="font-size:13px; color:var(--ink-soft);">{{ streakText }}</div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ notLoggedToday }}" hint-placeholder-val="{{ true }}">
+          <div onClick="{{ openCapture }}" style="margin-top: 18px; padding: 18px 20px; background: var(--accent); border-radius: 18px; cursor: pointer; border: 1px solid var(--line)">
+            <div style="font-family:var(--fdisp); font-size:21px; color:#fff; line-height:1.2; letter-spacing:-.2px;">One idea today?</div>
+            <div style="font-size:13.5px; color:rgba(255,255,255,.85); margin-top:5px; max-width:230px; line-height:1.4;">{{ streakText }}</div>
+            <div style="margin-top:13px; display:inline-flex; align-items:center; gap:7px; background:rgba(255,255,255,.18); padding:8px 14px; border-radius:11px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+              <span style="font-size:13.5px; color:#fff; font-weight:600;">Jot it down</span>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- today's focus -->
+        <div style="margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+          <div style="padding:14px 16px 10px; display:flex; align-items:baseline; justify-content:space-between;">
+            <span style="font-family:var(--fdisp); font-size:17px; color:var(--ink);">Today's focus</span>
+            <span style="font-size:12.5px; color:var(--ink-faint);">{{ todayFocusLabel }}</span>
+          </div>
+
+          <sc-if value="{{ hasTodayFocus }}" hint-placeholder-val="{{ true }}">
+            <sc-for list="{{ todayFocus }}" as="ft" hint-placeholder-count="2">
+              <div style="display:flex; align-items:flex-start; gap:11px; padding:11px 16px; border-top:1px solid var(--line);">
+                <button onClick="{{ ft.toggle }}" style="flex:none; margin-top:1px; width:21px; height:21px; border-radius:7px; border:1.7px solid {{ ft.boxBorder }}; background:{{ ft.boxBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                  <sc-if value="{{ ft.done }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                </button>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14.5px; line-height:1.35; color:{{ ft.color }}; text-decoration:{{ ft.strike }};">{{ ft.text }}</div>
+                  <div onClick="{{ ft.openIdea }}" style="font-size:12px; color:var(--accent); margin-top:2px; cursor:pointer;">{{ ft.ideaTitle }}</div>
+                </div>
+                <button onClick="{{ ft.remove }}" style="flex:none; border:none; background:none; cursor:pointer; color:var(--ink-faint); font-size:18px; line-height:1; padding:0 2px;">×</button>
+              </div>
+            </sc-for>
+          </sc-if>
+
+          <sc-if value="{{ noTodayFocus }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:2px 16px 16px; font-size:13.5px; color:var(--ink-soft); line-height:1.45;">Nothing picked yet — choose a few tasks below to focus on today.</div>
+          </sc-if>
+
+          <sc-if value="{{ hasSuggestedTasks }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:12px 16px 4px; border-top:1px solid var(--line); font-size:11px; color:var(--ink-faint); font-weight:700; letter-spacing:.4px;">SUGGESTED</div>
+            <sc-for list="{{ suggestedTasks }}" as="st" hint-placeholder-count="3">
+              <button onClick="{{ st.add }}" style="width:100%; display:flex; align-items:center; gap:11px; padding:9px 16px 10px; border:none; background:none; cursor:pointer; text-align:left;">
+                <span style="flex:none; width:21px; height:21px; border-radius:7px; border:1.7px dashed var(--line); display:flex; align-items:center; justify-content:center;">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                </span>
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:14px; color:var(--ink); line-height:1.35;">{{ st.text }}</div>
+                  <div style="font-size:11.5px; color:var(--ink-faint); margin-top:1px;">{{ st.ideaTitle }}</div>
+                </div>
+              </button>
+            </sc-for>
+          </sc-if>
+
+          <button onClick="{{ openTaskPicker }}" style="width:100%; display:flex; align-items:center; gap:11px; padding:12px 16px; border:none; border-top:1px solid var(--line); background:none; cursor:pointer; text-align:left;">
+            <span style="flex:none; width:21px; height:21px; border-radius:7px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"></circle><path d="m20 20-3.6-3.6"></path></svg>
+            </span>
+            <span style="flex:1; font-size:14px; color:var(--accent); font-weight:600;">Review everything & plan today…</span>
+          </button>
+        </div>
+
+        <!-- due soon -->
+        <sc-if value="{{ hasDueSoon }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:16px; background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+            <div style="padding:13px 16px 9px; display:flex; align-items:center; gap:8px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+              <span style="font-size:13px; font-weight:600; color:var(--ink); letter-spacing:.2px;">Due soon</span>
+            </div>
+            <sc-for list="{{ dueSoon }}" as="it" hint-placeholder-count="2">
+              <div onClick="{{ it.open }}" style="display:flex; align-items:center; gap:11px; padding:11px 16px; border-top:1px solid var(--line); cursor:pointer;">
+                <span style="flex:none; min-width:62px; font-size:12px; font-weight:700; color:{{ it.dueColor }};">{{ it.dueLabel }}</span>
+                <span style="flex:1; font-size:14px; color:var(--ink); line-height:1.3;">{{ it.title }}</span>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- contribution grid -->
+        <div style="margin-top:24px; padding:18px 18px 16px; background:var(--surface); border:1px solid var(--line); border-radius:18px;">
+          <div style="display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px;">
+            <div style="font-size:15px; font-weight:600; color:var(--ink);">Your rhythm</div>
+            <div style="font-family:var(--fdisp); font-size:14px; color:var(--accent);">{{ totalLabel }}</div>
+          </div>
+          <div style="display:flex; gap:3px; justify-content:space-between;">
+            <sc-for list="{{ grid }}" as="week" hint-placeholder-count="18">
+              <div style="display:flex; flex-direction:column; gap:3px; flex:1;">
+                <sc-for list="{{ week }}" as="cell" hint-placeholder-count="7">
+                  <div title="{{ cell.tip }}" style="width:100%; aspect-ratio:1; min-width:10px; border-radius:3px; background:{{ cell.bg }};"></div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:flex-end; gap:6px; margin-top:13px;">
+            <span style="font-size:11px; color:var(--ink-faint);">Less</span>
+            <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="5">
+              <div style="width:11px; height:11px; border-radius:3px; background:{{ lg }};"></div>
+            </sc-for>
+            <span style="font-size:11px; color:var(--ink-faint);">More</span>
+          </div>
+        </div>
+
+        <div style="margin-top:26px; display:flex; align-items:baseline; justify-content:space-between;">
+          <div style="font-family:var(--fdisp); font-size:19px; color:var(--ink);">Recent</div>
+          <button onClick="{{ goIdeas }}" style="border:none; background:none; cursor:pointer; font-size:13px; color:var(--accent); font-weight:600; padding:0;">All ideas</button>
+        </div>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <sc-for list="{{ recent }}" as="it" hint-placeholder-count="5">
+            <div style="position:relative; border-radius:15px; overflow:hidden;">
+            <div style="position:absolute; inset:0; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:20px; opacity:0;"><span style="color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>Archive</span></div>
+            <div onPointerDown="{{ it.rowDown }}" onPointerMove="{{ it.rowMove }}" onPointerUp="{{ it.rowUp }}" onClick="{{ it.open }}" style="position:relative; padding:15px 16px; background:var(--surface); border:1px solid var(--line); border-radius:15px; cursor:pointer; touch-action:pan-y;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+                <span style="font-size:11.5px; color:var(--ink-faint); font-weight:500;">{{ it.dateLabel }}</span>
+                <sc-if value="{{ it.projectName }}" hint-placeholder-val="">
+                  <span style="font-size:11px; color:var(--accent-ink); background:var(--accent-soft); padding:2px 8px; border-radius:20px; font-weight:600;">{{ it.projectName }}</span>
+                </sc-if>
+                <sc-if value="{{ it.dueLabel }}" hint-placeholder-val="">
+                  <span style="font-size:11px; color:{{ it.dueColor }}; font-weight:700; display:inline-flex; align-items:center; gap:3px;">{{ it.dueLabel }}</span>
+                </sc-if>
+              </div>
+              <div style="font-family:var(--fdisp); font-size:17px; line-height:1.28; color:var(--ink); letter-spacing:-.1px;">{{ it.title }}</div>
+              <sc-if value="{{ it.metaLine }}" hint-placeholder-val="">
+                <div style="font-size:12.5px; color:var(--ink-soft); margin-top:6px;">{{ it.metaLine }}</div>
+              </sc-if>
+            </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ IDEAS ============ -->
+      <sc-if value="{{ showIdeas }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 22px 0;">
+        <div style="font-family:var(--fdisp); font-size:30px; color:var(--ink); letter-spacing:-.2px;">Ideas</div>
+
+        <div style="margin-top:16px; display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 14px;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+          <input value="{{ search }}" onChange="{{ onSearch }}" placeholder="Search ideas, tags, projects" style="border:none; outline:none; background:none; flex:1; font-size:14.5px; color:var(--ink); min-width:0;">
+        </div>
+
+        <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:14px; display:flex; gap:5px; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:4px;">
+            <button onClick="{{ setViewAll }}" style="flex:1; border:none; cursor:pointer; padding:9px; border-radius:9px; background:{{ tabAllBg }}; color:{{ tabAllColor }}; font-size:13.5px; font-weight:600;">All ideas</button>
+            <button onClick="{{ setViewFolders }}" style="flex:1; border:none; cursor:pointer; padding:9px; border-radius:9px; background:{{ tabFoldersBg }}; color:{{ tabFoldersColor }}; font-size:13.5px; font-weight:600;">Folders</button>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showAllList }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:16px; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+            <button onClick="{{ cycleSort }}" style="display:inline-flex; align-items:center; gap:7px; border:1px solid var(--line); background:var(--surface); border-radius:10px; padding:8px 12px; cursor:pointer; font-size:13px; color:var(--ink); font-weight:600;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12M4 12h8M4 18h4"></path></svg>
+              {{ sortLabel }}
+            </button>
+            <span style="font-size:12.5px; color:var(--ink-faint);">{{ allCountLabel }}</span>
+          </div>
+
+          <div class="scrollarea" style="margin:12px -22px 0; padding:0 22px 2px; display:flex; gap:8px; overflow-x:auto;">
+            <sc-for list="{{ filterChips }}" as="fc" hint-placeholder-count="5">
+              <button onClick="{{ fc.select }}" style="flex:none; border:1px solid {{ fc.border }}; background:{{ fc.bg }}; color:{{ fc.color }}; padding:7px 13px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer; white-space:nowrap;">{{ fc.label }}</button>
+            </sc-for>
+          </div>
+
+          <div style="margin-top:14px; display:flex; flex-direction:column; gap:10px;">
+            <sc-for list="{{ allList }}" as="it" hint-placeholder-count="6">
+              <div style="position:relative; border-radius:15px; overflow:hidden;">
+              <div style="position:absolute; inset:0; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:20px; opacity:0;"><span style="color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>Archive</span></div>
+              <div onPointerDown="{{ it.rowDown }}" onPointerMove="{{ it.rowMove }}" onPointerUp="{{ it.rowUp }}" onClick="{{ it.open }}" style="position:relative; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:15px; cursor:pointer; touch-action:pan-y;">
+                <div style="display:flex; align-items:center; gap:8px; margin-bottom:5px;">
+                  <span style="font-size:11.5px; color:var(--ink-faint); font-weight:500;">{{ it.dateLabel }}</span>
+                  <sc-if value="{{ it.projectName }}" hint-placeholder-val="">
+                    <span style="font-size:11px; color:var(--accent-ink); background:var(--accent-soft); padding:2px 8px; border-radius:20px; font-weight:600;">{{ it.projectName }}</span>
+                  </sc-if>
+                  <sc-if value="{{ it.dueLabel }}" hint-placeholder-val="">
+                    <span style="font-size:11px; color:{{ it.dueColor }}; font-weight:700;">{{ it.dueLabel }}</span>
+                  </sc-if>
+                </div>
+                <div style="font-family:var(--fdisp); font-size:16.5px; line-height:1.28; color:var(--ink);">{{ it.title }}</div>
+                <sc-if value="{{ it.metaLine }}" hint-placeholder-val=""><div style="font-size:12.5px; color:var(--ink-soft); margin-top:5px;">{{ it.metaLine }}</div></sc-if>
+              </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ searchActive }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px; display:flex; flex-direction:column; gap:10px;">
+            <div style="font-size:12.5px; color:var(--ink-faint); font-weight:500;">{{ searchCountLabel }}</div>
+            <sc-for list="{{ searchResults }}" as="it" hint-placeholder-count="3">
+              <div style="position:relative; border-radius:15px; overflow:hidden;">
+              <div style="position:absolute; inset:0; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:20px; opacity:0;"><span style="color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>Archive</span></div>
+              <div onPointerDown="{{ it.rowDown }}" onPointerMove="{{ it.rowMove }}" onPointerUp="{{ it.rowUp }}" onClick="{{ it.open }}" style="position:relative; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:15px; cursor:pointer; touch-action:pan-y;">
+                <div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:5px;">{{ it.dateLabel }}</div>
+                <div style="font-family:var(--fdisp); font-size:16.5px; line-height:1.28; color:var(--ink);">{{ it.title }}</div>
+                <sc-if value="{{ it.metaLine }}" hint-placeholder-val=""><div style="font-size:12.5px; color:var(--ink-soft); margin-top:5px;">{{ it.metaLine }}</div></sc-if>
+              </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isBrowsing }}" hint-placeholder-val="{{ false }}">
+          <div style="margin-top:18px;">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <button onClick="{{ clearBrowse }}" style="border:none; background:none; cursor:pointer; display:flex; align-items:center; gap:6px; color:var(--ink-soft); padding:0; font-size:13.5px; font-weight:600;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+                Back
+              </button>
+              <sc-if value="{{ browseManageable }}" hint-placeholder-val="{{ false }}">
+                <button onClick="{{ openProjectMenu }}" style="border:none; background:none; cursor:pointer; color:var(--ink-soft); padding:4px;">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="var(--ink-soft)"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+                </button>
+              </sc-if>
+            </div>
+            <div style="font-family:var(--fdisp); font-size:23px; color:var(--ink); margin-top:12px;">{{ browseTitle }}</div>
+            <div style="font-size:13px; color:var(--ink-faint); margin-top:2px;">{{ browseCountLabel }}</div>
+            <div style="margin-top:14px; display:flex; flex-direction:column; gap:10px;">
+              <sc-for list="{{ browseList }}" as="it" hint-placeholder-count="4">
+                <div style="position:relative; border-radius:15px; overflow:hidden;">
+                <div style="position:absolute; inset:0; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:20px; opacity:0;"><span style="color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>Archive</span></div>
+                <div onPointerDown="{{ it.rowDown }}" onPointerMove="{{ it.rowMove }}" onPointerUp="{{ it.rowUp }}" onClick="{{ it.open }}" style="position:relative; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:15px; cursor:pointer; touch-action:pan-y;">
+                  <div style="font-size:11.5px; color:var(--ink-faint); margin-bottom:5px;">{{ it.dateLabel }}</div>
+                  <div style="font-family:var(--fdisp); font-size:16.5px; line-height:1.28; color:var(--ink);">{{ it.title }}</div>
+                  <sc-if value="{{ it.metaLine }}" hint-placeholder-val=""><div style="font-size:12.5px; color:var(--ink-soft); margin-top:5px;">{{ it.metaLine }}</div></sc-if>
+                </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ showFolders }}" hint-placeholder-val="{{ true }}">
+          <div style="margin-top:24px; display:flex; align-items:center; justify-content:space-between;">
+            <span style="font-size:13px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.5px;">Projects</span>
+            <button onClick="{{ startNewProject }}" style="border:none; background:none; cursor:pointer; color:var(--accent); font-weight:600; font-size:13px; padding:0; display:flex; align-items:center; gap:4px;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>New</button>
+          </div>
+          <div class="scrollarea" style="margin-top:12px; display:flex; gap:11px; overflow-x:auto; padding-bottom:4px; margin:12px -22px 0; padding-left:22px; padding-right:22px;">
+            <sc-for list="{{ projects }}" as="p" hint-placeholder-count="3">
+              <div onClick="{{ p.open }}" style="flex:none; width:152px; padding:16px; background:var(--surface); border:1px solid var(--line); border-radius:16px; cursor:pointer; position:relative;">
+                <div style="display:flex; align-items:flex-start; justify-content:space-between;">
+                  <div style="width:30px; height:30px; border-radius:9px; background:var(--accent-soft); display:flex; align-items:center; justify-content:center;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                  </div>
+                  <button onClick="{{ p.menu }}" style="border:none; background:none; cursor:pointer; color:var(--ink-faint); padding:2px; margin:-2px -4px 0 0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle></svg>
+                  </button>
+                </div>
+                <div style="font-family:var(--fdisp); font-size:16px; color:var(--ink); line-height:1.25; margin-top:12px;">{{ p.name }}</div>
+                <div style="font-size:12.5px; color:var(--ink-faint); margin-top:4px;">{{ p.countLabel }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="margin-top:24px; font-size:13px; font-weight:600; color:var(--ink-soft); text-transform:uppercase; letter-spacing:.5px;">Tags</div>
+          <div style="margin-top:3px; font-size:12px; color:var(--ink-faint);">Add tags from any idea · tap ⋯ to rename or remove</div>
+          <div style="margin-top:10px; background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden;">
+            <sc-for list="{{ tagFolders }}" as="f" hint-placeholder-count="6">
+              <div onClick="{{ f.open }}" style="display:flex; align-items:center; gap:12px; padding:13px 10px 13px 16px; cursor:pointer; border-top:1px solid var(--line);">
+                <span style="font-family:var(--fdisp); font-size:16px; color:var(--accent); flex:none;">#</span>
+                <span style="flex:1; font-size:15px; color:var(--ink); font-weight:500;">{{ f.tag }}</span>
+                <span style="font-size:13px; color:var(--ink-faint);">{{ f.count }}</span>
+                <button onClick="{{ f.menu }}" style="flex:none; border:none; background:none; cursor:pointer; color:var(--ink-faint); padding:6px;">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.7"></circle><circle cx="12" cy="12" r="1.7"></circle><circle cx="19" cy="12" r="1.7"></circle></svg>
+                </button>
+              </div>
+            </sc-for>
+          </div>
+
+          <sc-if value="{{ hasArchive }}" hint-placeholder-val="{{ false }}">
+            <div onClick="{{ openArchive }}" style="margin-top:16px; display:flex; align-items:center; gap:11px; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:14px; cursor:pointer;">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>
+              <span style="flex:1; font-size:14.5px; color:var(--ink); font-weight:500;">Archived</span>
+              <span style="font-size:13px; color:var(--ink-faint);">{{ archiveCount }}</span>
+            </div>
+          </sc-if>
+        </sc-if>
+      </div>
+      </sc-if>
+
+      <!-- ============ CALENDAR ============ -->
+      <sc-if value="{{ showCalendar }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 22px 0;">
+        <div style="font-family:var(--fdisp); font-size:30px; color:var(--ink); letter-spacing:-.2px;">Calendar</div>
+
+        <div style="margin-top:18px; background:var(--surface); border:1px solid var(--line); border-radius:18px; padding:16px 16px 10px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+            <button onClick="{{ prevMonth }}" style="border:1px solid var(--line); background:none; width:30px; height:30px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+            <div style="font-family:var(--fdisp); font-size:17px; color:var(--ink); font-weight:500;">{{ monthLabel }}</div>
+            <button onClick="{{ nextMonth }}" style="border:1px solid var(--line); background:none; width:30px; height:30px; border-radius:9px; cursor:pointer; display:flex; align-items:center; justify-content:center;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg></button>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:2px; margin-bottom:6px;">
+            <sc-for list="{{ dow }}" as="d" hint-placeholder-count="7">
+              <div style="text-align:center; font-size:11px; color:var(--ink-faint); font-weight:600;">{{ d }}</div>
+            </sc-for>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:3px;">
+            <sc-for list="{{ calDays }}" as="d" hint-placeholder-count="35">
+              <div onClick="{{ d.select }}" style="position:relative; aspect-ratio:1; display:flex; align-items:center; justify-content:center; border-radius:11px; cursor:pointer; background:{{ d.fill }}; box-shadow:{{ d.ring }};">
+                <span style="font-size:13.5px; color:{{ d.color }}; font-weight:{{ d.weight }};">{{ d.day }}</span>
+                <sc-if value="{{ d.due }}" hint-placeholder-val="{{ false }}"><div style="position:absolute; top:5px; right:6px; width:5px; height:5px; border-radius:50%; background:{{ d.dueColor }};"></div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="font-size:11px; color:var(--ink-faint);">Calm</span>
+              <sc-for list="{{ legend }}" as="lg" hint-placeholder-count="5"><div style="width:11px; height:11px; border-radius:3px; background:{{ lg }};"></div></sc-for>
+              <span style="font-size:11px; color:var(--ink-faint);">Full</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:6px;"><div style="width:6px; height:6px; border-radius:50%; background:var(--accent);"></div><span style="font-size:11px; color:var(--ink-faint);">Due</span></div>
+          </div>
+        </div>
+
+        <div style="margin-top:22px; font-family:var(--fdisp); font-size:18px; color:var(--ink);">{{ selectedLabel }}</div>
+        <div style="margin-top:12px; display:flex; flex-direction:column; gap:10px;">
+          <sc-if value="{{ hasDayIdeas }}" hint-placeholder-val="{{ true }}">
+            <sc-for list="{{ dayIdeas }}" as="it" hint-placeholder-count="2">
+              <div style="position:relative; border-radius:15px; overflow:hidden;">
+              <div style="position:absolute; inset:0; background:var(--accent); display:flex; align-items:center; justify-content:flex-end; padding-right:20px; opacity:0;"><span style="color:#fff; font-weight:600; font-size:13px; display:flex; align-items:center; gap:7px;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>Archive</span></div>
+              <div onPointerDown="{{ it.rowDown }}" onPointerMove="{{ it.rowMove }}" onPointerUp="{{ it.rowUp }}" onClick="{{ it.open }}" style="position:relative; padding:14px 16px; background:var(--surface); border:1px solid var(--line); border-radius:15px; cursor:pointer; touch-action:pan-y;">
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <sc-if value="{{ it.dueHere }}" hint-placeholder-val="{{ false }}"><span style="font-size:10.5px; font-weight:700; color:{{ it.dueColor }}; text-transform:uppercase; letter-spacing:.4px;">Due</span></sc-if>
+                  <div style="flex:1; font-family:var(--fdisp); font-size:16px; line-height:1.28; color:var(--ink);">{{ it.title }}</div>
+                </div>
+                <sc-if value="{{ it.metaLine }}" hint-placeholder-val=""><div style="font-size:12.5px; color:var(--ink-soft); margin-top:5px;">{{ it.metaLine }}</div></sc-if>
+              </div>
+              </div>
+            </sc-for>
+          </sc-if>
+          <sc-if value="{{ noDayIdeas }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:22px 16px; border:1px dashed var(--line); border-radius:15px; text-align:center;">
+              <svg viewBox="0 0 80 46" width="80" style="display:block; margin:0 auto 10px;">
+                <circle cx="58" cy="16" r="10" fill="var(--sun)" opacity="0.9"></circle>
+                <path d="M0 30 C14 24 22 34 36 30 S60 24 80 30 L80 46 L0 46 Z" fill="var(--wave1)"></path>
+                <path d="M0 36 C16 31 24 40 38 36 S62 31 80 37 L80 46 L0 46 Z" fill="var(--wave3)"></path>
+              </svg>
+              <div style="color:var(--ink-faint); font-size:13.5px;">Nothing here yet — a calm day.</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="margin-top:26px; display:flex; align-items:baseline; justify-content:space-between;">
+          <div style="font-family:var(--fdisp); font-size:18px; color:var(--ink);">Open next steps</div>
+          <span style="font-size:12.5px; color:var(--ink-faint);">{{ openTaskCount }}</span>
+        </div>
+        <div style="margin-top:12px; background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:hidden;">
+          <sc-for list="{{ openTasks }}" as="task" hint-placeholder-count="4">
+            <div style="display:flex; align-items:flex-start; gap:12px; padding:13px 15px; border-top:1px solid var(--line);">
+              <button onClick="{{ task.toggle }}" style="flex:none; margin-top:1px; width:20px; height:20px; border-radius:6px; border:1.7px solid var(--line); background:none; cursor:pointer;"></button>
+              <div style="flex:1; min-width:0;">
+                <div style="font-size:14px; color:var(--ink); line-height:1.35;">{{ task.text }}</div>
+                <div onClick="{{ task.open }}" style="font-size:12px; color:var(--accent); margin-top:3px; cursor:pointer;">{{ task.ideaTitle }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      </sc-if>
+
+      <!-- ============ SETTINGS ============ -->
+      <sc-if value="{{ showSettings }}" hint-placeholder-val="{{ false }}">
+      <div style="padding:14px 22px 0;">
+        <div style="font-family:var(--fdisp); font-size:30px; color:var(--ink); letter-spacing:-.2px;">Settings</div>
+
+        <!-- Appearance -->
+        <div style="margin-top:26px;">
+          <div style="font-size:11.5px; color:var(--ink-faint); font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px;">Appearance</div>
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+            <sc-for list="{{ themeOptions }}" as="th" hint-placeholder-count="3">
+              <button onClick="{{ th.select }}" style="width:100%; border:none; background:{{ th.rowBg }}; cursor:pointer; display:flex; align-items:center; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line);">
+                <div style="flex:none; width:40px; height:40px; border-radius:11px; border:1px solid rgba(0,0,0,.06); background:{{ th.swatch }}; display:flex; align-items:center; justify-content:center;">
+                  <span style="font-family:{{ th.font }}; font-size:17px; color:{{ th.swInk }};">Aa</span>
+                </div>
+                <div style="flex:1; text-align:left;">
+                  <div style="font-size:15px; color:var(--ink); font-weight:600;">{{ th.name }}</div>
+                  <div style="font-size:12.5px; color:var(--ink-faint); margin-top:1px;">{{ th.desc }}</div>
+                </div>
+                <sc-if value="{{ th.active }}" hint-placeholder-val="{{ false }}">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+                </sc-if>
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- Notifications -->
+        <div style="margin-top:26px;">
+          <div style="font-size:11.5px; color:var(--ink-faint); font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px;">Notifications</div>
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+
+            <div style="padding:14px 16px; display:flex; align-items:center; gap:12px;">
+              <div style="flex:1;">
+                <div style="font-size:15px; color:var(--ink); font-weight:500;">Morning planning</div>
+                <div style="font-size:12.5px; color:var(--ink-faint); margin-top:2px;">Pick the tasks you'll focus on today</div>
+              </div>
+              <div onClick="{{ toggleNotifMorning }}" style="flex:none; width:44px; height:26px; border-radius:13px; background:{{ notifMorningBg }}; position:relative; cursor:pointer;">
+                <div style="position:absolute; top:2px; left:{{ notifMorningKnob }}; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.22);"></div>
+              </div>
+            </div>
+
+            <sc-if value="{{ notifMorningOn }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:10px 16px 14px; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"></circle><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"></path></svg>
+                <span style="font-size:13.5px; color:var(--ink-soft); flex:1;">Prompt time</span>
+                <input type="time" value="{{ notifMorningTime }}" onChange="{{ onNotifMorningTime }}" style="border:1px solid var(--line); border-radius:10px; background:var(--bg); padding:7px 10px; font-size:13px; color:var(--ink); font-family:inherit; outline:none;">
+              </div>
+            </sc-if>
+
+            <div style="padding:14px 16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px;">
+              <div style="flex:1;">
+                <div style="font-size:15px; color:var(--ink); font-weight:500;">Evening check-in</div>
+                <div style="font-size:12.5px; color:var(--ink-faint); margin-top:2px;">Check off what you finished today</div>
+              </div>
+              <div onClick="{{ toggleNotifEvening }}" style="flex:none; width:44px; height:26px; border-radius:13px; background:{{ notifEveningBg }}; position:relative; cursor:pointer;">
+                <div style="position:absolute; top:2px; left:{{ notifEveningKnob }}; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.22);"></div>
+              </div>
+            </div>
+
+            <sc-if value="{{ notifEveningOn }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:10px 16px 14px; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"></path></svg>
+                <span style="font-size:13.5px; color:var(--ink-soft); flex:1;">Prompt time</span>
+                <input type="time" value="{{ notifEveningTime }}" onChange="{{ onNotifEveningTime }}" style="border:1px solid var(--line); border-radius:10px; background:var(--bg); padding:7px 10px; font-size:13px; color:var(--ink); font-family:inherit; outline:none;">
+              </div>
+            </sc-if>
+
+            <div style="padding:14px 16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px;">
+              <div style="flex:1;">
+                <div style="font-size:15px; color:var(--ink); font-weight:500;">Due date reminders</div>
+                <div style="font-size:12.5px; color:var(--ink-faint); margin-top:2px;">Morning of the due date</div>
+              </div>
+              <div onClick="{{ toggleNotifDue }}" style="flex:none; width:44px; height:26px; border-radius:13px; background:{{ notifDueBg }}; position:relative; cursor:pointer;">
+                <div style="position:absolute; top:2px; left:{{ notifDueKnob }}; width:22px; height:22px; border-radius:50%; background:#fff; box-shadow:0 1px 3px rgba(0,0,0,.22);"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Data -->
+        <div style="margin-top:26px;">
+          <div style="font-size:11.5px; color:var(--ink-faint); font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-bottom:10px;">Data</div>
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+            <button style="width:100%; border:none; background:none; cursor:pointer; padding:14px 16px; display:flex; align-items:center; gap:12px; text-align:left;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              <span style="flex:1; font-size:15px; color:var(--ink); font-weight:500;">Export ideas</span>
+              <span style="font-size:13px; color:var(--ink-faint);">{{ exportLabel }}</span>
+            </button>
+            <button onClick="{{ clearArchive }}" style="width:100%; border:none; background:none; cursor:pointer; padding:14px 16px; border-top:1px solid var(--line); display:flex; align-items:center; gap:12px; text-align:left;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C0492F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>
+              <span style="flex:1; font-size:15px; color:#C0492F; font-weight:500;">Clear archive</span>
+              <span style="font-size:13px; color:var(--ink-faint);">{{ archiveCountLabel }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- About -->
+        <div style="margin-top:26px; margin-bottom:14px;">
+          <div style="background:var(--surface); border:1px solid var(--line); border-radius:18px; overflow:hidden;">
+            <div style="padding:14px 16px; display:flex; align-items:center; gap:14px;">
+              <div style="flex:none; width:40px; height:40px; border-radius:12px; background:var(--accent); display:flex; align-items:center; justify-content:center;">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
+              </div>
+              <div>
+                <div style="font-size:15px; color:var(--ink); font-weight:600;">Margin</div>
+                <div style="font-size:12.5px; color:var(--ink-faint); margin-top:2px;">Version 0.1 · Ideas, unhurried</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      </sc-if>
+
+    </div>
+
+    <!-- FAB -->
+    <sc-if value="{{ showFab }}" hint-placeholder-val="{{ true }}">
+    <button onClick="{{ openCapture }}" style="position:absolute; right:20px; bottom:90px; width:56px; height:56px; border-radius:50%; background:var(--accent); border:none; cursor:pointer; z-index:25; display:flex; align-items:center; justify-content:center; box-shadow:0 10px 22px -6px var(--accent-soft);">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+    </button>
+    </sc-if>
+
+    <!-- BOTTOM NAV -->
+    <div style="position:absolute; left:0; right:0; bottom:0; height:84px; background:var(--surface); border-top:1px solid var(--line); display:flex; align-items:flex-start; padding-top:11px; z-index:24;">
+      <button onClick="{{ goToday }}" style="flex:1; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ colToday }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"></path><path d="M5 9.5V20h14V9.5"></path></svg>
+        <span style="font-size:10px; color:{{ colToday }}; font-weight:600;">Today</span>
+      </button>
+      <button onClick="{{ goIdeas }}" style="flex:1; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ colIdeas }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+        <span style="font-size:10px; color:{{ colIdeas }}; font-weight:600;">Ideas</span>
+      </button>
+      <button onClick="{{ goCalendar }}" style="flex:1; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ colCal }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4.5" width="18" height="16" rx="2.5"></rect><path d="M3 9h18M8 2.5v4M16 2.5v4"></path></svg>
+        <span style="font-size:10px; color:{{ colCal }}; font-weight:600;">Calendar</span>
+      </button>
+      <button onClick="{{ goSettings }}" style="flex:1; border:none; background:none; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:4px;">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="{{ colSettings }}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        <span style="font-size:10px; color:{{ colSettings }}; font-weight:600;">Settings</span>
+      </button>
+    </div>
+
+    <!-- ===== QUICK CAPTURE SHEET ===== -->
+    <sc-if value="{{ captureOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeCapture }}" style="position:absolute; inset:0; background:rgba(28,26,20,.34); z-index:40; animation:fadeIn .2s ease;"></div>
+      <div ref="{{ sheetRef }}" style="position:absolute; left:0; right:0; bottom:0; z-index:41; background:var(--bg); border-radius:26px 26px 0 0; padding:8px 22px 24px; animation:sheetUp .3s cubic-bezier(.22,1,.36,1); box-shadow:0 -10px 40px -10px rgba(28,26,20,.3); touch-action:none;">
+        <div onPointerDown="{{ onHandleDown }}" onPointerMove="{{ onHandleMove }}" onPointerUp="{{ onHandleUp }}" style="padding:8px 0 6px; cursor:grab; touch-action:none;">
+          <div style="width:38px; height:4px; border-radius:3px; background:var(--line); margin:0 auto;"></div>
+        </div>
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <span style="font-family:var(--fdisp); font-size:18px; color:var(--ink);">Quick capture</span>
+          <button onClick="{{ closeCapture }}" style="border:none; background:none; cursor:pointer; color:var(--ink-faint); font-size:14px; padding:4px;">Cancel</button>
+        </div>
+        <textarea value="{{ captureText }}" onChange="{{ onCaptureInput }}" autofocus="" placeholder="What's the idea? Just start typing…" style="width:100%; min-height:96px; resize:none; border:none; outline:none; background:none; font-family:var(--fdisp); font-size:20px; line-height:1.4; color:var(--ink);"></textarea>
+        <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px; align-items:center;">
+          <sc-for list="{{ captureChips }}" as="c" hint-placeholder-count="6">
+            <button onClick="{{ c.toggle }}" style="border:1px solid {{ c.border }}; background:{{ c.bg }}; color:{{ c.color }}; padding:7px 13px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer;">#{{ c.tag }}</button>
+          </sc-for>
+          <div style="display:flex; align-items:center; gap:3px; border:1px dashed var(--line); border-radius:20px; padding:5px 11px 5px 9px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+            <input value="{{ newCaptureTag }}" onChange="{{ onNewCaptureTag }}" onKeyDown="{{ onNewCaptureTagKey }}" placeholder="tag" style="border:none; outline:none; background:none; font-size:13px; color:var(--ink); width:44px;">
+          </div>
+        </div>
+        <button onClick="{{ saveCapture }}" style="margin-top:18px; width:100%; padding:15px; border:none; border-radius:14px; background:{{ saveBg }}; color:#fff; font-size:15.5px; font-weight:600; cursor:{{ saveCursor }};">Save idea</button>
+        <div style="display:flex; align-items:center; justify-content:center; gap:6px; font-size:11.5px; color:var(--ink-faint); margin-top:12px;">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"></path></svg>
+          Swipe up for the full editor
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== PLAN YOUR DAY (add to today's focus) ===== -->
+    <sc-if value="{{ taskPickerOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeTaskPicker }}" style="position:absolute; inset:0; background:rgba(28,26,20,.34); z-index:48; animation:fadeIn .2s ease;"></div>
+      <div style="position:absolute; left:0; right:0; bottom:0; top:54px; z-index:49; background:var(--bg); border-radius:26px 26px 0 0; animation:sheetUp .3s cubic-bezier(.22,1,.36,1); box-shadow:0 -10px 40px -10px rgba(28,26,20,.3); display:flex; flex-direction:column; overflow:hidden;">
+        <div style="padding:8px 0 4px;"><div style="width:38px; height:4px; border-radius:3px; background:var(--line); margin:0 auto;"></div></div>
+        <div style="padding:4px 22px 0; display:flex; align-items:baseline; justify-content:space-between;">
+          <div>
+            <div style="font-family:var(--fdisp); font-size:20px; color:var(--ink); line-height:1.1;">Plan your day</div>
+            <div style="font-size:12.5px; color:var(--accent); font-weight:600; margin-top:3px;">{{ planSelectedLabel }}</div>
+          </div>
+          <button onClick="{{ closeTaskPicker }}" style="border:none; background:none; cursor:pointer; color:var(--accent); font-size:14px; font-weight:600; padding:4px;">Done</button>
+        </div>
+        <div style="padding:12px 22px 2px;">
+          <div style="display:flex; align-items:center; gap:10px; background:var(--surface); border:1px solid var(--line); border-radius:13px; padding:11px 14px;">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg>
+            <input value="{{ taskPickerSearch }}" onChange="{{ onTaskPickerSearch }}" placeholder="Search tasks, ideas, projects" style="border:none; outline:none; background:none; flex:1; font-size:14.5px; color:var(--ink); min-width:0;">
+          </div>
+        </div>
+        <div class="scrollarea" style="flex:1; overflow-y:auto; padding:8px 22px 26px;">
+          <sc-for list="{{ planGroups }}" as="g" hint-placeholder-count="2">
+            <div style="margin-top:14px;">
+              <div style="display:flex; align-items:baseline; justify-content:space-between; padding:0 2px 9px;">
+                <span style="font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--ink-faint); text-transform:uppercase;">{{ g.label }}</span>
+                <span style="font-size:12px; color:var(--ink-faint);">{{ g.countLabel }}</span>
+              </div>
+              <sc-for list="{{ g.ideas }}" as="gi" hint-placeholder-count="2">
+                <div style="margin-bottom:10px; background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden;">
+                  <div onClick="{{ gi.open }}" style="display:flex; align-items:center; gap:8px; padding:11px 14px 9px; cursor:pointer;">
+                    <span style="flex:1; min-width:0; font-family:var(--fdisp); font-size:15px; color:var(--ink); line-height:1.25;">{{ gi.title }}</span>
+                    <sc-if value="{{ gi.hasDue }}" hint-placeholder-val="{{ false }}"><span style="flex:none; font-size:11px; font-weight:700; color:{{ gi.dueColor }};">{{ gi.dueLabel }}</span></sc-if>
+                  </div>
+                  <sc-for list="{{ gi.tasks }}" as="pt" hint-placeholder-count="2">
+                    <button onClick="{{ pt.toggle }}" style="width:100%; display:flex; align-items:flex-start; gap:11px; padding:9px 14px 10px; border:none; border-top:1px solid var(--line); background:{{ pt.rowBg }}; cursor:pointer; text-align:left;">
+                      <span style="flex:none; margin-top:1px; width:21px; height:21px; border-radius:7px; border:1.7px solid {{ pt.boxBorder }}; background:{{ pt.boxBg }}; display:flex; align-items:center; justify-content:center;">
+                        <sc-if value="{{ pt.inToday }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                      </span>
+                      <span style="flex:1; min-width:0; font-size:14px; color:var(--ink); line-height:1.35;">{{ pt.text }}</span>
+                      <sc-if value="{{ pt.inToday }}" hint-placeholder-val="{{ false }}"><span style="flex:none; font-size:10px; font-weight:700; letter-spacing:.3px; color:var(--accent-ink); background:var(--accent-soft); padding:3px 8px; border-radius:12px; text-transform:uppercase;">Today</span></sc-if>
+                    </button>
+                  </sc-for>
+                </div>
+              </sc-for>
+            </div>
+          </sc-for>
+
+          <sc-if value="{{ hasLooseIdeas }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:18px; border-top:1px solid var(--line); padding-top:15px;">
+              <button onClick="{{ togglePlanLoose }}" style="width:100%; display:flex; align-items:center; justify-content:space-between; border:none; background:none; cursor:pointer; padding:0 2px;">
+                <span style="font-size:11.5px; font-weight:700; letter-spacing:.5px; color:var(--ink-faint); text-transform:uppercase;">Ideas without tasks · {{ looseCount }}</span>
+                <span style="font-size:12.5px; color:var(--accent); font-weight:600;">{{ looseToggleLabel }}</span>
+              </button>
+              <div style="font-size:12px; color:var(--ink-faint); margin:5px 2px 0; line-height:1.4;">So nothing slips — open one to give it a next step.</div>
+              <sc-if value="{{ planShowLoose }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:11px; display:flex; flex-direction:column; gap:8px;">
+                  <sc-for list="{{ looseIdeas }}" as="li" hint-placeholder-count="3">
+                    <div onClick="{{ li.open }}" style="display:flex; align-items:center; gap:10px; padding:12px 14px; background:var(--surface); border:1px solid var(--line); border-radius:12px; cursor:pointer;">
+                      <span style="flex:1; min-width:0; font-size:14px; color:var(--ink); line-height:1.3;">{{ li.title }}</span>
+                      <span style="flex:none; font-size:11.5px; color:var(--ink-faint);">{{ li.dateLabel }}</span>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-faint)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"></path></svg>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ planEmpty }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:34px 18px; text-align:center; color:var(--ink-faint); font-size:13.5px; line-height:1.5;">{{ pickerEmptyText }}</div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== NOTE READER (read-only) ===== -->
+    <sc-if value="{{ readerOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; z-index:45; background:var(--bg); animation:sheetUp .3s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column;">
+        <div style="flex:none; padding:52px 18px 10px; display:flex; align-items:center; justify-content:space-between;">
+          <button onClick="{{ closeReader }}" style="border:none; background:none; cursor:pointer; display:flex; align-items:center; gap:5px; color:var(--ink-soft); padding:6px 8px; font-size:14px; font-weight:600;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+            Back
+          </button>
+          <button onClick="{{ editFromReader }}" style="border:1px solid var(--line); background:var(--surface); cursor:pointer; display:flex; align-items:center; gap:6px; color:var(--ink); padding:8px 14px; border-radius:11px; font-size:13.5px; font-weight:600;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+            Edit
+          </button>
+        </div>
+
+        <div class="scrollarea" style="flex:1; overflow-y:auto; padding:4px 22px 48px;">
+          <div style="font-family:var(--fdisp); font-size:26px; line-height:1.22; color:var(--ink); letter-spacing:-.3px;">{{ r.title }}</div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; align-items:center;">
+            <span style="font-size:12.5px; color:var(--ink-faint);">{{ r.dateLabel }}</span>
+            <sc-if value="{{ r.hasProject }}" hint-placeholder-val="{{ false }}">
+              <span style="display:inline-flex; align-items:center; gap:6px; background:var(--accent-soft); color:var(--accent-ink); padding:5px 11px; border-radius:20px; font-size:12.5px; font-weight:600;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+                {{ r.project }}
+              </span>
+            </sc-if>
+            <sc-if value="{{ r.hasDue }}" hint-placeholder-val="{{ false }}">
+              <span style="display:inline-flex; align-items:center; gap:6px; background:{{ r.dueChipBg }}; color:{{ r.dueChipColor }}; padding:5px 11px; border-radius:20px; font-size:12.5px; font-weight:600;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+                {{ r.dueLabel }}
+              </span>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ r.hasTags }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex; flex-wrap:wrap; gap:7px; margin-top:12px;">
+              <sc-for list="{{ r.tags }}" as="tg" hint-placeholder-count="2">
+                <span style="font-size:12.5px; color:var(--accent-ink); background:var(--accent-soft); padding:5px 10px; border-radius:20px; font-weight:600;">#{{ tg }}</span>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ r.hasBody }}" hint-placeholder-val="{{ false }}">
+            <div style="white-space:pre-wrap; font-family:var(--fui); font-size:16px; line-height:1.6; color:var(--ink-soft); margin-top:18px;">{{ r.body }}</div>
+          </sc-if>
+
+          <sc-if value="{{ r.hasChecklist }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:22px;">
+              <div style="font-family:var(--fdisp); font-size:16px; color:var(--ink); margin-bottom:8px;">Tasks</div>
+              <div style="background:var(--surface); border:1px solid var(--line); border-radius:14px; overflow:hidden;">
+                <sc-for list="{{ r.checklist }}" as="ci" hint-placeholder-count="2">
+                  <div style="display:flex; align-items:flex-start; gap:11px; padding:12px 14px; border-top:1px solid var(--line);">
+                    <button onClick="{{ ci.toggle }}" style="flex:none; margin-top:1px; width:21px; height:21px; border-radius:7px; border:1.7px solid {{ ci.boxBorder }}; background:{{ ci.boxBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                      <sc-if value="{{ ci.done }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                    </button>
+                    <span style="flex:1; font-size:14.5px; line-height:1.4; color:{{ ci.color }}; text-decoration:{{ ci.strike }};">{{ ci.text }}</span>
+                    <button onClick="{{ ci.toggleToday }}" style="flex:none; display:inline-flex; align-items:center; gap:5px; border:1px solid {{ ci.todayBorder }}; background:{{ ci.todayBg }}; color:{{ ci.todayColor }}; padding:5px 9px; border-radius:18px; font-size:11.5px; font-weight:600; cursor:pointer; white-space:nowrap;">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.5"></circle><path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l1.4 1.4M17.6 17.6 19 19M19 5l-1.4 1.4M6.4 17.6 5 19"></path></svg>
+                      Today
+                    </button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ r.hasLinks }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:20px;">
+              <div style="font-family:var(--fdisp); font-size:16px; color:var(--ink); margin-bottom:9px;">Links</div>
+              <div style="display:flex; flex-direction:column; gap:7px;">
+                <sc-for list="{{ r.links }}" as="lk" hint-placeholder-count="1">
+                  <div style="display:flex; align-items:center; gap:10px; padding:11px 13px; background:var(--surface); border:1px solid var(--line); border-radius:12px;">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"></path></svg>
+                    <span style="flex:1; font-size:13.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ lk.label }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- ===== NOTE EDITOR (full) ===== -->
+    <sc-if value="{{ noteOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute; inset:0; z-index:45; background:var(--bg); animation:sheetUp .3s cubic-bezier(.22,1,.36,1); display:flex; flex-direction:column;">
+        <div style="flex:none; padding:52px 18px 10px; display:flex; align-items:center; justify-content:space-between;">
+          <button onClick="{{ closeNote }}" style="border:none; background:none; cursor:pointer; display:flex; align-items:center; gap:5px; color:var(--ink-soft); padding:6px 8px; font-size:14px; font-weight:600;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+            Done
+          </button>
+          <div style="display:flex; align-items:center; gap:4px;">
+            <span style="font-size:12px; color:var(--ink-faint); margin-right:4px;">{{ n.savedLabel }}</span>
+            <button onClick="{{ toggleNoteMenu }}" style="border:none; background:none; cursor:pointer; color:var(--ink-soft); padding:6px;">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"></circle><circle cx="12" cy="12" r="1.8"></circle><circle cx="19" cy="12" r="1.8"></circle></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="scrollarea" style="flex:1; overflow-y:auto; padding:4px 22px 48px;">
+          <textarea value="{{ n.title }}" onChange="{{ onTitle }}" placeholder="Untitled idea" rows="1" style="width:100%; resize:none; border:none; outline:none; background:none; font-family:var(--fdisp); font-size:26px; line-height:1.2; color:var(--ink); letter-spacing:-.3px; overflow:hidden; min-height:34px;"></textarea>
+
+          <!-- meta pills -->
+          <div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;">
+            <button onClick="{{ toggleProjectPanel }}" style="display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:{{ n.projChipBg }}; color:{{ n.projChipColor }}; padding:6px 12px; border-radius:20px; font-size:12.5px; font-weight:600; cursor:pointer;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h3.5l2 2H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg>
+              {{ n.projLabel }}
+            </button>
+            <button onClick="{{ toggleDuePanel }}" style="display:inline-flex; align-items:center; gap:6px; border:1px solid {{ n.dueBorder }}; background:{{ n.dueChipBg }}; color:{{ n.dueChipColor }}; padding:6px 12px; border-radius:20px; font-size:12.5px; font-weight:600; cursor:pointer;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>
+              {{ n.dueLabel }}
+            </button>
+          </div>
+
+          <!-- project panel -->
+          <sc-if value="{{ n.projectPanelOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px; padding:12px; background:var(--surface); border:1px solid var(--line); border-radius:14px; animation:popIn .16s ease;">
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <button onClick="{{ n.clearProject }}" style="border:1px solid var(--line); background:var(--bg); color:var(--ink-soft); padding:6px 12px; border-radius:18px; font-size:12.5px; font-weight:600; cursor:pointer;">None</button>
+                <sc-for list="{{ n.projectOptions }}" as="po" hint-placeholder-count="3">
+                  <button onClick="{{ po.pick }}" style="border:1px solid {{ po.border }}; background:{{ po.bg }}; color:{{ po.color }}; padding:6px 12px; border-radius:18px; font-size:12.5px; font-weight:600; cursor:pointer;">{{ po.name }}</button>
+                </sc-for>
+              </div>
+              <input value="{{ n.newProjText }}" onChange="{{ onNewProj }}" onKeyDown="{{ onNewProjKey }}" placeholder="+ New project…" style="margin-top:10px; width:100%; border:none; border-top:1px solid var(--line); outline:none; background:none; padding:9px 2px 2px; font-size:13.5px; color:var(--ink);">
+            </div>
+          </sc-if>
+
+          <!-- due panel -->
+          <sc-if value="{{ n.duePanelOpen }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:10px; padding:12px; background:var(--surface); border:1px solid var(--line); border-radius:14px; animation:popIn .16s ease;">
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <sc-for list="{{ n.dueOptions }}" as="dop" hint-placeholder-count="5">
+                  <button onClick="{{ dop.pick }}" style="border:1px solid {{ dop.border }}; background:{{ dop.bg }}; color:{{ dop.color }}; padding:6px 12px; border-radius:18px; font-size:12.5px; font-weight:600; cursor:pointer;">{{ dop.label }}</button>
+                </sc-for>
+              </div>
+              <div style="margin-top:11px; padding-top:11px; border-top:1px solid var(--line); display:flex; align-items:center; gap:8px;">
+                <span style="font-size:12.5px; color:var(--ink-soft); font-weight:600;">Pick a date</span>
+                <input type="date" value="{{ n.dueInputValue }}" onChange="{{ onDueInput }}" style="margin-left:auto; border:1px solid var(--line); border-radius:10px; background:var(--bg); padding:7px 10px; font-size:13px; color:var(--ink); font-family:inherit;">
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- tags -->
+          <div style="display:flex; flex-wrap:wrap; gap:7px; align-items:center; margin-top:14px;">
+            <sc-for list="{{ n.tags }}" as="tg" hint-placeholder-count="2">
+              <button onClick="{{ tg.remove }}" style="display:inline-flex; align-items:center; gap:5px; font-size:12.5px; color:var(--accent-ink); background:var(--accent-soft); padding:5px 10px; border-radius:20px; font-weight:600; border:none; cursor:pointer;">#{{ tg.text }} <span style="opacity:.6; font-size:14px; line-height:1;">×</span></button>
+            </sc-for>
+            <input value="{{ n.newTagText }}" onChange="{{ onNewTag }}" onKeyDown="{{ onNewTagKey }}" placeholder="+ custom" style="border:none; outline:none; background:none; font-size:12.5px; color:var(--ink); width:74px; padding:5px 2px;">
+          </div>
+          <sc-if value="{{ n.hasSuggest }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:9px;">
+              <div style="font-size:11px; color:var(--ink-faint); font-weight:600; letter-spacing:.3px; margin-bottom:7px;">SUGGESTED</div>
+              <div style="display:flex; flex-wrap:wrap; gap:7px;">
+                <sc-for list="{{ n.suggestTags }}" as="sg" hint-placeholder-count="5">
+                  <button onClick="{{ sg.add }}" style="border:1px dashed var(--line); background:none; color:var(--ink-soft); padding:5px 11px; border-radius:20px; font-size:12.5px; font-weight:600; cursor:pointer;">#{{ sg.text }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- body -->
+          <textarea value="{{ n.body }}" onChange="{{ onBody }}" placeholder="Start writing… thoughts, context, the long version." style="width:100%; min-height:150px; resize:none; border:none; outline:none; background:none; font-family:var(--fui); font-size:16px; line-height:1.6; color:var(--ink-soft); margin-top:16px; overflow:hidden;"></textarea>
+
+          <!-- EXTRAS -->
+          <sc-if value="{{ n.hasExtras }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:8px; border-top:1px solid var(--line); padding-top:18px;">
+              <div style="font-size:11.5px; color:var(--ink-faint); font-weight:700; letter-spacing:.5px;">EXTRAS</div>
+
+              <sc-if value="{{ n.showChecklist }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:14px;">
+                  <div style="display:flex; align-items:baseline; justify-content:space-between;">
+                    <span style="font-family:var(--fdisp); font-size:16px; color:var(--ink);">Checklist</span>
+                    <span style="font-size:12px; color:var(--ink-faint);">{{ n.checklistLabel }}</span>
+                  </div>
+                  <div style="margin-top:8px; display:flex; flex-direction:column;">
+                    <sc-for list="{{ n.checklist }}" as="ci" hint-placeholder-count="3">
+                      <div style="display:flex; align-items:flex-start; gap:11px; padding:9px 0;">
+                        <button onClick="{{ ci.toggle }}" style="flex:none; margin-top:1px; width:21px; height:21px; border-radius:7px; border:1.7px solid {{ ci.boxBorder }}; background:{{ ci.boxBg }}; cursor:pointer; display:flex; align-items:center; justify-content:center;">
+                          <sc-if value="{{ ci.done }}" hint-placeholder-val="{{ false }}"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                        </button>
+                        <span style="flex:1; font-size:14.5px; line-height:1.4; color:{{ ci.color }}; text-decoration:{{ ci.strike }};">{{ ci.text }}</span>
+                        <button onClick="{{ ci.remove }}" style="flex:none; border:none; background:none; cursor:pointer; color:var(--ink-faint); font-size:17px; line-height:1; padding:0 2px;">×</button>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex; align-items:center; gap:11px; padding:9px 0;">
+                    <div style="flex:none; width:21px; height:21px; border-radius:7px; border:1.7px dashed var(--line);"></div>
+                    <input value="{{ n.newTaskText }}" onChange="{{ onNewTask }}" onKeyDown="{{ onNewTaskKey }}" placeholder="Add a step…" style="flex:1; border:none; outline:none; background:none; font-size:14.5px; color:var(--ink);">
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ n.showSketch }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:18px;">
+                  <span style="font-family:var(--fdisp); font-size:16px; color:var(--ink);">Sketches</span>
+                  <div style="margin-top:9px; display:flex; gap:10px;">
+                    <sc-for list="{{ n.sketchSlots }}" as="sk" hint-placeholder-count="2">
+                      <div style="flex:1; aspect-ratio:1; border-radius:13px; overflow:hidden; border:1px solid var(--line);">
+                        <image-slot id="{{ sk.id }}" shape="rounded" radius="13" placeholder="Drop a sketch"></image-slot>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-if>
+
+              <sc-if value="{{ n.showLinks }}" hint-placeholder-val="{{ false }}">
+                <div style="margin-top:18px;">
+                  <span style="font-family:var(--fdisp); font-size:16px; color:var(--ink);">Links</span>
+                  <div style="margin-top:9px; display:flex; flex-direction:column; gap:7px;">
+                    <sc-for list="{{ n.links }}" as="lk" hint-placeholder-count="1">
+                      <div style="display:flex; align-items:center; gap:10px; padding:11px 13px; background:var(--surface); border:1px solid var(--line); border-radius:12px;">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"></path><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"></path></svg>
+                        <span style="flex:1; font-size:13.5px; color:var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ lk.label }}</span>
+                        <button onClick="{{ lk.remove }}" style="border:none; background:none; cursor:pointer; color:var(--ink-faint); font-size:17px; line-height:1; padding:0 2px;">×</button>
+                      </div>
+                    </sc-for>
+                    <input value="{{ n.newLinkText }}" onChange="{{ onNewLink }}" onKeyDown="{{ onNewLinkKey }}" placeholder="Paste a link or reference…" style="border:1px dashed var(--line); outline:none; background:none; font-size:13.5px; color:var(--ink); padding:11px 13px; border-radius:12px;">
+                  </div>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+
+          <!-- add extras -->
+          <div style="margin-top:20px; display:flex; flex-wrap:wrap; gap:8px;">
+            <sc-for list="{{ n.addOptions }}" as="ao" hint-placeholder-count="3">
+              <button onClick="{{ ao.add }}" style="display:inline-flex; align-items:center; gap:6px; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); padding:8px 13px; border-radius:11px; font-size:13px; font-weight:600; cursor:pointer;">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+                {{ ao.label }}
+              </button>
+            </sc-for>
+          </div>
+        </div>
+
+        <!-- note ••• menu -->
+        <sc-if value="{{ noteMenuOpen }}" hint-placeholder-val="{{ false }}">
+          <div onClick="{{ closeNoteMenu }}" style="position:absolute; inset:0; z-index:46; background:rgba(28,26,20,.16); animation:fadeIn .16s ease;"></div>
+          <div style="position:absolute; top:84px; right:18px; z-index:47; background:var(--surface); border:1px solid var(--line); border-radius:15px; padding:6px; width:188px; box-shadow:0 18px 40px -12px rgba(28,26,20,.3); animation:popIn .18s ease;">
+            <button onClick="{{ n.archive }}" style="width:100%; text-align:left; border:none; background:none; cursor:pointer; padding:11px 12px; border-radius:10px; font-size:14px; color:var(--ink); display:flex; align-items:center; gap:10px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="4" rx="1"></rect><path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8M10 12h4"></path></svg>
+              {{ n.archiveLabel }}
+            </button>
+            <button onClick="{{ n.del }}" style="width:100%; text-align:left; border:none; background:none; cursor:pointer; padding:11px 12px; border-radius:10px; font-size:14px; color:#C0492F; display:flex; align-items:center; gap:10px;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#C0492F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
+              Delete idea
+            </button>
+          </div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===== PROJECT MENU (manage) ===== -->
+    <sc-if value="{{ projectMenuOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeProjectMenu }}" style="position:absolute; inset:0; z-index:52; background:rgba(28,26,20,.3); animation:fadeIn .18s ease;"></div>
+      <div style="position:absolute; left:0; right:0; bottom:0; z-index:53; background:var(--bg); border-radius:24px 24px 0 0; padding:10px 18px 26px; animation:sheetUp .28s cubic-bezier(.22,1,.36,1);">
+        <div style="width:38px; height:4px; border-radius:3px; background:var(--line); margin:6px auto 16px;"></div>
+        <sc-if value="{{ pm.renaming }}" hint-placeholder-val="{{ false }}">
+          <div style="font-size:12px; color:var(--ink-faint); font-weight:700; letter-spacing:.4px; padding:0 4px 8px;">{{ pm.heading }}</div>
+          <input value="{{ pm.renameText }}" onChange="{{ onRename }}" onKeyDown="{{ onRenameKey }}" autofocus="" style="width:100%; border:1px solid var(--line); border-radius:12px; outline:none; background:var(--surface); padding:13px 14px; font-size:16px; color:var(--ink); font-family:var(--fdisp);">
+          <button onClick="{{ commitRename }}" style="margin-top:12px; width:100%; padding:14px; border:none; border-radius:13px; background:var(--accent); color:#fff; font-size:15px; font-weight:600; cursor:pointer;">Save name</button>
+        </sc-if>
+        <sc-if value="{{ pm.menuMode }}" hint-placeholder-val="{{ true }}">
+          <div style="font-family:var(--fdisp); font-size:19px; color:var(--ink); padding:0 4px 4px;">{{ pm.name }}</div>
+          <div style="font-size:13px; color:var(--ink-faint); padding:0 4px 12px;">{{ pm.countLabel }}</div>
+          <button onClick="{{ startRename }}" style="width:100%; text-align:left; border:none; background:var(--surface); cursor:pointer; padding:14px 15px; border-radius:13px; font-size:15px; color:var(--ink); display:flex; align-items:center; gap:12px; margin-bottom:8px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-soft)" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg>
+            {{ pm.renameAction }}
+          </button>
+          <button onClick="{{ deleteProject }}" style="width:100%; text-align:left; border:none; background:var(--surface); cursor:pointer; padding:14px 15px; border-radius:13px; font-size:15px; color:#C0492F; display:flex; align-items:center; gap:12px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C0492F" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"></path></svg>
+            {{ pm.deleteAction }}
+          </button>
+          <div style="font-size:12px; color:var(--ink-faint); text-align:center; margin-top:10px;">{{ pm.helper }}</div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <!-- ===== NEW PROJECT SHEET ===== -->
+    <sc-if value="{{ newProjectOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeNewProject }}" style="position:absolute; inset:0; z-index:52; background:rgba(28,26,20,.3); animation:fadeIn .18s ease;"></div>
+      <div style="position:absolute; left:0; right:0; bottom:0; z-index:53; background:var(--bg); border-radius:24px 24px 0 0; padding:10px 18px 26px; animation:sheetUp .28s cubic-bezier(.22,1,.36,1);">
+        <div style="width:38px; height:4px; border-radius:3px; background:var(--line); margin:6px auto 16px;"></div>
+        <div style="font-size:12px; color:var(--ink-faint); font-weight:700; letter-spacing:.4px; padding:0 4px 8px;">NEW PROJECT</div>
+        <input value="{{ newProjectText }}" onChange="{{ onNewProjectText }}" onKeyDown="{{ onNewProjectKey }}" autofocus="" placeholder="Project name" style="width:100%; border:1px solid var(--line); border-radius:12px; outline:none; background:var(--surface); padding:13px 14px; font-size:16px; color:var(--ink); font-family:var(--fdisp);">
+        <button onClick="{{ commitNewProject }}" style="margin-top:12px; width:100%; padding:14px; border:none; border-radius:13px; background:{{ newProjBg }}; color:#fff; font-size:15px; font-weight:600; cursor:pointer;">Create project</button>
+      </div>
+    </sc-if>
+
+
+
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1280,&quot;height&quot;:900}}">
+class Component extends DCLogic {
+  scrollRef = React.createRef();
+  oceanRef = React.createRef();
+
+  componentDidMount() {
+    this._onScroll = () => {
+      const el = this.scrollRef.current;
+      const bg = this.oceanRef.current;
+      if (!el || !bg) return;
+      bg.style.transform = `translateY(${el.scrollTop * 0.5}px)`;
+    };
+    const el = this.scrollRef.current;
+    if (el) el.addEventListener('scroll', this._onScroll, { passive: true });
+  }
+
+  componentWillUnmount() {
+    const el = this.scrollRef.current;
+    if (el) el.removeEventListener('scroll', this._onScroll);
+  }
+
+  constructor(props) {
+    super(props);
+    this.sheetRef = React.createRef();
+    this._drag = null;
+    const now = new Date();
+    const mk = (daysAgo, h = 10, m = 0) => { const d = new Date(now); d.setDate(d.getDate() - daysAgo); d.setHours(h, m, 0, 0); return d.getTime(); };
+    const due = (days, h = 17) => { const d = new Date(now); d.setDate(d.getDate() + days); d.setHours(h, 0, 0, 0); return d.getTime(); };
+    let _id = 1;
+    const idea = (o) => ({ id: _id++, body: '', tags: [], project: null, due: null, archived: false, checklist: [], links: [], extras: {}, ...o });
+    const seed = [
+      idea({ title: 'Campus laundry tracker — live machine map', tags: ['hackathon', 'side-project'], project: 'Side Projects', createdAt: mk(1, 22, 14), due: due(5),
+        body: "Dorm machines are always taken at the worst time. A tiny live map of which washers are free, plus a text when mine finishes.\n\nCould scrape the existing pay portal instead of adding hardware.",
+        extras: { checklist: true, sketch: true },
+        checklist: [{ text: 'Sketch the 3 core screens', done: true }, { text: 'Check if the laundry portal has an API', done: false, today: true }, { text: 'Ask 5 floormates if they\u2019d use it', done: false }] }),
+      idea({ title: 'Thesis angle: coastal insurance redlining', tags: ['essay', 'research'], project: 'Senior Thesis', createdAt: mk(1, 19), due: due(2),
+        body: "Follow the money, not just the water — where insurers pull out might predict displacement better than flood maps.",
+        extras: { checklist: true, links: true },
+        links: [{ label: 'NOAA flood policy dataset' }],
+        checklist: [{ text: 'Find 2 datasets on policy withdrawal', done: false }, { text: 'Email Prof. Anand for a reading list', done: false, today: true }] }),
+      idea({ title: 'Auto-build flashcards from lecture markdown', tags: ['cs', 'study'], project: 'CS 301', createdAt: mk(2, 16), due: due(9),
+        body: "Parse my lecture notes for bold terms and generate a spaced-repetition deck before the midterm.",
+        extras: { checklist: true },
+        checklist: [{ text: 'Pick a parser', done: true }, { text: 'Wire up a review schedule', done: false }] }),
+      idea({ title: 'Photo series for the portfolio review', tags: ['creative'], project: 'Personal', createdAt: mk(3, 21) }),
+      idea({ title: 'Study-group scheduling poll that respects sleep', tags: ['study'], createdAt: mk(3, 13) }),
+      idea({ title: 'Reading notes — Jane Jacobs, ch. 3', tags: ['research', 'essay'], project: 'Senior Thesis', createdAt: mk(4, 11),
+        body: "Sidewalks as infrastructure. The \u201ceyes on the street\u201d idea maps onto digital community moderation surprisingly well." }),
+      idea({ title: 'Pomodoro timer that soft-blocks Discord', tags: ['side-project', 'cs'], createdAt: mk(5, 15), extras: { checklist: true },
+        checklist: [{ text: 'Decide: browser extension vs menubar app', done: false }] }),
+      idea({ title: 'Grant idea: low-cost soil sensors for the campus garden', tags: ['research', 'hackathon'], createdAt: mk(6, 17) }),
+      idea({ title: 'Refactor the portfolio site to be fully static', tags: ['cs', 'creative'], project: 'Personal', createdAt: mk(8, 20) }),
+      idea({ title: 'Essay intro — three hook options to test', tags: ['essay'], project: 'Senior Thesis', createdAt: mk(9, 10),
+        body: "1. Open on the closed gas station.\n2. Open on the insurance letter.\n3. Open on the high-water mark on the wall." }),
+      idea({ title: 'Questions to bring to office hours', tags: ['research'], createdAt: mk(11, 9) }),
+      idea({ title: 'Shared grocery list app for the apartment', tags: ['side-project'], project: 'Side Projects', createdAt: mk(12, 18) }),
+      idea({ title: 'Lecture demo: visualize sorting algorithms', tags: ['cs', 'study'], project: 'CS 301', createdAt: mk(14, 13) }),
+      idea({ title: 'Spring break: dig through the regional archive', tags: ['research'], project: 'Senior Thesis', createdAt: mk(16, 12) }),
+      idea({ title: 'Logo sketches for the hack team', tags: ['creative', 'hackathon'], createdAt: mk(19, 21) }),
+      idea({ title: 'Read up on retrieval practice vs re-reading', tags: ['study'], createdAt: mk(21, 14) }),
+    ];
+    this.state = {
+      screen: 'today', theme: 'paper',
+      ideas: seed,
+      captureOpen: false, captureText: '', captureTags: [], newCaptureTag: '',
+      noteId: null, readerId: null, noteMenuOpen: false, metaPanel: null,
+      taskPickerOpen: false, taskPickerSearch: '', planShowLoose: false,
+      newTagText: '', newTaskText: '', newLinkText: '', newProjText: '',
+      browseKey: null, search: '',
+      ideasView: 'all', ideasSort: 'recent', ideasFilter: null,
+      themeMenuOpen: false,
+      manageKind: null, projectMenuName: null, pmRenaming: false, pmRenameText: '',
+      newProjectOpen: false, newProjectText: '',
+      calRef: now.getTime(), selectedDay: this.dayKey(now.getTime()),
+      notifMorning: true, notifMorningTime: '08:00', notifEvening: true, notifEveningTime: '20:00', notifDue: true,
+    };
+  }
+
+  themes() {
+    return {
+      paper: { key: 'paper', name: 'Shore', desc: 'Warm sand, editorial', bg: '#F4EFE4', surface: '#FFFFFF', ink: '#1F303C', inkSoft: '#5D6B73', inkFaint: '#A7ABA3', line: '#E7DFCF', accent: '#2C6DA8', accentInk: '#1C4E80', accentSoft: 'rgba(44,109,168,.12)', accentRGB: '44,109,168', canvas: '#E7DEC9', gridEmpty: '#ECE4D3', sky: '#D7E8F0', sun: '#EFA85C', wave1: '#9CC6E2', wave2: '#4F8FC2', wave3: '#2C6DA8', sand: '#E8D3A4', boat: '#E5825A', sail: '#FFFFFF', fdisp: "'Newsreader', Georgia, serif", fui: "'Hanken Grotesk', system-ui, sans-serif" },
+      cool: { key: 'cool', name: 'Seafoam', desc: 'Bright & clear', bg: '#EFF4F6', surface: '#FFFFFF', ink: '#16303F', inkSoft: '#52646E', inkFaint: '#9FACB2', line: '#E0E9ED', accent: '#2E86C4', accentInk: '#1E5E8E', accentSoft: 'rgba(46,134,196,.12)', accentRGB: '46,134,196', canvas: '#DBE7EC', gridEmpty: '#E4ECEF', sky: '#D5E9F2', sun: '#F2B45E', wave1: '#9ECBE6', wave2: '#4F97CC', wave3: '#2E86C4', sand: '#E8D6AE', boat: '#E5825A', sail: '#FFFFFF', fdisp: "'Hanken Grotesk', system-ui, sans-serif", fui: "'Hanken Grotesk', system-ui, sans-serif" },
+      mono: { key: 'mono', name: 'Tide', desc: 'Deep & quiet', bg: '#EEF2F7', surface: '#FFFFFF', ink: '#15263A', inkSoft: '#4E5E6E', inkFaint: '#9DA8B2', line: '#DEE6EE', accent: '#27619E', accentInk: '#184772', accentSoft: 'rgba(39,97,158,.12)', accentRGB: '39,97,158', canvas: '#D8E1EB', gridEmpty: '#E2EAF1', sky: '#D2E2EF', sun: '#E9A458', wave1: '#92B6D8', wave2: '#447FB4', wave3: '#27619E', sand: '#E3D2AC', boat: '#DE7C57', sail: '#FFFFFF', fdisp: "'JetBrains Mono', ui-monospace, monospace", fui: "'Hanken Grotesk', system-ui, sans-serif" },
+    };
+  }
+  theme() { return this.themes()[this.state.theme]; }
+  dayKey(ts) { const d = new Date(ts); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+  rgba(a) { return 'rgba(' + this.theme().accentRGB + ',' + a + ')'; }
+  levelColor(c) { if (c <= 0) return this.theme().gridEmpty; if (c === 1) return this.rgba(0.28); if (c === 2) return this.rgba(0.5); if (c === 3) return this.rgba(0.72); return this.rgba(0.94); }
+  active() { return this.state.ideas.filter(i => !i.archived); }
+  byDay() { const m = {}; this.active().forEach(i => { const k = this.dayKey(i.createdAt); m[k] = (m[k] || 0) + 1; }); return m; }
+  fmtShort(ts) {
+    const d = new Date(ts), now = new Date();
+    const dd = new Date(d); dd.setHours(0,0,0,0); const nn = new Date(now); nn.setHours(0,0,0,0);
+    const diff = Math.round((nn - dd) / 86400000);
+    if (diff === 0) return 'Today'; if (diff === 1) return 'Yesterday'; if (diff > 1 && diff < 7) return diff + ' days ago';
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+  fmtFull(ts) { return new Date(ts).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }); }
+  dueInfo(ts) {
+    if (!ts) return null;
+    const d = new Date(ts); const dd = new Date(d); dd.setHours(0,0,0,0);
+    const nn = new Date(); nn.setHours(0,0,0,0);
+    const diff = Math.round((dd - nn) / 86400000);
+    let label, overdue = diff < 0;
+    if (diff === 0) label = 'Today'; else if (diff === 1) label = 'Tomorrow'; else if (diff === -1) label = 'Yesterday';
+    else if (diff < 0) label = Math.abs(diff) + 'd overdue';
+    else if (diff < 7) label = d.toLocaleDateString('en-US', { weekday: 'short' });
+    else label = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return { label, overdue, diff };
+  }
+  metaLine(i) {
+    const parts = [];
+    const open = (i.checklist || []).filter(c => !c.done).length;
+    if (open) parts.push(open + (open === 1 ? ' step' : ' steps') + ' open');
+    if (i.tags && i.tags.length) parts.push(i.tags.map(t => '#' + t).join(' '));
+    return parts.join('  ·  ');
+  }
+
+  patch(id, patch) {
+    this.setState(s => ({ ideas: s.ideas.map(i => i.id === id ? { ...i, ...(typeof patch === 'function' ? patch(i) : patch) } : i) }));
+  }
+  setScreen(v) { this.setState({ screen: v, browseKey: null, search: '' }); }
+
+  // capture
+  openCapture() { this.setState({ captureOpen: true, captureText: '', captureTags: [] }); }
+  closeCapture() { this.setState({ captureOpen: false, captureText: '', captureTags: [] }); }
+  onCaptureInput(e) { this.setState({ captureText: e.target.value }); }
+  toggleCaptureTag(tag) { this.setState(s => { const set = new Set(s.captureTags); set.has(tag) ? set.delete(tag) : set.add(tag); return { captureTags: [...set] }; }); }
+  onNewCaptureTag(e) { this.setState({ newCaptureTag: e.target.value }); }
+  onNewCaptureTagKey(e) { if (e.key === 'Enter') { const v = e.target.value.trim().replace(/^#/, '').replace(/\s+/g, '-'); if (v) this.setState(s => ({ captureTags: s.captureTags.includes(v) ? s.captureTags : [...s.captureTags, v], newCaptureTag: '' })); } }
+  archiveIdea(id) { this.patch(id, { archived: true }); }
+  addTagToNote(tag) { this.patch(this.state.noteId, i => ({ tags: i.tags.includes(tag) ? i.tags : [...i.tags, tag] })); }
+  setDueCustom(e) { const v = e.target.value; if (v) { const p = v.split('-').map(Number); this.setDue(new Date(p[0], p[1] - 1, p[2], 17, 0, 0, 0).getTime()); } }
+  onRowDown(e) { this._row = { x: e.clientX, y: e.clientY, el: e.currentTarget, moved: false }; }
+  onRowMove(e) {
+    const r = this._row; if (!r) return;
+    const dx = e.clientX - r.x, dy = e.clientY - r.y;
+    if (!r.moved && (Math.abs(dx) < 7 || Math.abs(dx) <= Math.abs(dy))) return;
+    r.moved = true;
+    try { r.el.setPointerCapture(e.pointerId); } catch (_) {}
+    const v = Math.min(0, Math.max(-170, dx));
+    r.el.style.transition = 'none'; r.el.style.transform = 'translateX(' + v + 'px)';
+    const bg = r.el.previousElementSibling; if (bg) bg.style.opacity = Math.min(1, Math.abs(v) / 100);
+  }
+  onRowUp(e, id) {
+    const r = this._row; this._row = null; if (!r) return;
+    const dx = e.clientX - r.x;
+    if (r.moved) this._rowGuard = Date.now();
+    r.el.style.transition = 'transform .22s ease';
+    if (dx < -100) { r.el.style.transform = 'translateX(-112%)'; setTimeout(() => this.archiveIdea(id), 170); }
+    else { r.el.style.transform = ''; const bg = r.el.previousElementSibling; if (bg) bg.style.opacity = 0; }
+  }
+  rowGuarded() { return this._rowGuard && Date.now() - this._rowGuard < 260; }
+  makeIdea(text, tags) {
+    const lines = (text || '').split('\n');
+    const title = (lines[0] || '').slice(0, 140);
+    const body = lines.slice(1).join('\n').trim();
+    const nid = Math.max(0, ...this.state.ideas.map(i => i.id)) + 1;
+    const it = { id: nid, title, body, tags: [...tags], project: null, due: null, archived: false, checklist: [], links: [], extras: {}, createdAt: Date.now() };
+    this.setState(s => ({ ideas: [it, ...s.ideas] }));
+    return nid;
+  }
+  saveCapture() { if (!this.state.captureText.trim()) return; this.makeIdea(this.state.captureText, this.state.captureTags); this.closeCapture(); }
+  expandQuick() {
+    const id = this.makeIdea(this.state.captureText || '', this.state.captureTags);
+    this.setState({ captureOpen: false, captureText: '', captureTags: [], newCaptureTag: '', noteId: id, metaPanel: null, noteMenuOpen: false });
+  }
+  onHandleDown(e) { this._drag = { y: e.clientY, dy: 0 }; try { e.currentTarget.setPointerCapture(e.pointerId); } catch (_) {} }
+  onHandleMove(e) {
+    if (!this._drag) return;
+    const dy = e.clientY - this._drag.y; this._drag.dy = dy;
+    const el = this.sheetRef.current;
+    if (el) { el.style.transition = 'none'; el.style.transform = 'translateY(' + Math.max(-260, Math.min(140, dy)) + 'px)'; }
+  }
+  onHandleUp() {
+    if (!this._drag) return;
+    const dy = this._drag.dy; this._drag = null;
+    const el = this.sheetRef.current;
+    if (el) { el.style.transition = 'transform .25s ease'; el.style.transform = ''; }
+    if (dy < -48) this.expandQuick(); else if (dy > 70) this.closeCapture();
+  }
+
+  // note editor
+  openNote(id) { this.setState({ noteId: id, metaPanel: null, noteMenuOpen: false, newTagText: '', newTaskText: '', newLinkText: '', newProjText: '' }); }
+  closeNote() {
+    const id = this.state.noteId;
+    const it = this.state.ideas.find(i => i.id === id);
+    if (it && !(it.title || '').trim() && !(it.body || '').trim() && !it.tags.length && !it.checklist.length && !it.links.length && !it.due) {
+      this.setState(s => ({ ideas: s.ideas.filter(i => i.id !== id), noteId: null, noteMenuOpen: false, metaPanel: null }));
+    } else {
+      this.setState({ noteId: null, noteMenuOpen: false, metaPanel: null });
+    }
+  }
+  onTitle(e) { this.patch(this.state.noteId, { title: e.target.value }); this.grow(e); }
+  onBody(e) { this.patch(this.state.noteId, { body: e.target.value }); this.grow(e); }
+  grow(e) { const el = e.target; el.style.height = 'auto'; el.style.height = el.scrollHeight + 'px'; }
+  toggleNoteMenu() { this.setState(s => ({ noteMenuOpen: !s.noteMenuOpen })); }
+  closeNoteMenu() { this.setState({ noteMenuOpen: false }); }
+  archiveNote() { const it = this.state.ideas.find(i => i.id === this.state.noteId); this.patch(this.state.noteId, { archived: !it.archived }); this.setState({ noteMenuOpen: false, noteId: null }); }
+  deleteNote() { const id = this.state.noteId; this.setState(s => ({ ideas: s.ideas.filter(i => i.id !== id), noteId: null, noteMenuOpen: false })); }
+
+  // read-only reader
+  openReader(id) { this.setState({ readerId: id, noteId: null, noteMenuOpen: false }); }
+  closeReader() { this.setState({ readerId: null }); }
+  editFromReader() { const id = this.state.readerId; this.setState({ readerId: null, noteId: id, metaPanel: null, noteMenuOpen: false, newTagText: '', newTaskText: '', newLinkText: '', newProjText: '' }); }
+
+  // task picker (find any task to add to today's focus)
+  openTaskPicker() { this.setState({ taskPickerOpen: true, taskPickerSearch: '', planShowLoose: false }); }
+  closeTaskPicker() { this.setState({ taskPickerOpen: false }); }
+  onTaskPickerSearch(e) { this.setState({ taskPickerSearch: e.target.value }); }
+  togglePlanLoose() { this.setState(s => ({ planShowLoose: !s.planShowLoose })); }
+
+  toggleMetaPanel(p) { this.setState(s => ({ metaPanel: s.metaPanel === p ? null : p })); }
+  setProject(name) { this.patch(this.state.noteId, { project: name }); this.setState({ metaPanel: null }); }
+  onNewProj(e) { this.setState({ newProjText: e.target.value }); }
+  onNewProjKey(e) { if (e.key === 'Enter') { const v = this.state.newProjText.trim(); if (v) { this.setProject(v); this.setState({ newProjText: '' }); } } }
+  setDue(ts) { this.patch(this.state.noteId, { due: ts }); this.setState({ metaPanel: null }); }
+
+  onNewTag(e) { this.setState({ newTagText: e.target.value }); }
+  onNewTagKey(e) { if (e.key === 'Enter') { const v = this.state.newTagText.trim().replace(/^#/, ''); if (v) { this.patch(this.state.noteId, i => ({ tags: i.tags.includes(v) ? i.tags : [...i.tags, v] })); this.setState({ newTagText: '' }); } } }
+  removeTag(tag) { this.patch(this.state.noteId, i => ({ tags: i.tags.filter(t => t !== tag) })); }
+
+  addExtra(key) { this.patch(this.state.noteId, i => ({ extras: { ...i.extras, [key]: true } })); }
+  toggleChk(idx) { this.patch(this.state.noteId, i => ({ checklist: i.checklist.map((c, k) => k === idx ? { ...c, done: !c.done } : c) })); }
+  removeChk(idx) { this.patch(this.state.noteId, i => ({ checklist: i.checklist.filter((_, k) => k !== idx) })); }
+  onNewTask(e) { this.setState({ newTaskText: e.target.value }); }
+  onNewTaskKey(e) { if (e.key === 'Enter') { const v = this.state.newTaskText.trim(); if (v) { this.patch(this.state.noteId, i => ({ checklist: [...i.checklist, { text: v, done: false }], extras: { ...i.extras, checklist: true } })); this.setState({ newTaskText: '' }); } } }
+  onNewLink(e) { this.setState({ newLinkText: e.target.value }); }
+  onNewLinkKey(e) { if (e.key === 'Enter') { const v = this.state.newLinkText.trim(); if (v) { this.patch(this.state.noteId, i => ({ links: [...i.links, { label: v }], extras: { ...i.extras, links: true } })); this.setState({ newLinkText: '' }); } } }
+  removeLink(idx) { this.patch(this.state.noteId, i => ({ links: i.links.filter((_, k) => k !== idx) })); }
+
+  // browse / search
+  openBrowse(key) { this.setState({ browseKey: key, search: '' }); }
+  clearBrowse() { this.setState({ browseKey: null }); }
+  onSearch(e) { this.setState({ search: e.target.value }); }
+  setIdeasView(v) { this.setState({ ideasView: v }); }
+  cycleSort() { this.setState(s => ({ ideasSort: s.ideasSort === 'recent' ? 'oldest' : s.ideasSort === 'oldest' ? 'due' : 'recent' })); }
+  setIdeasFilter(tag) { this.setState(s => ({ ideasFilter: s.ideasFilter === tag ? null : tag })); }
+
+  // projects & tags management
+  openManage(kind, name) { this.setState({ manageKind: kind, projectMenuName: name, pmRenaming: false, pmRenameText: name }); }
+  closeProjectMenu() { this.setState({ projectMenuName: null, manageKind: null, pmRenaming: false }); }
+  startRename() { this.setState(s => ({ pmRenaming: true, pmRenameText: s.projectMenuName })); }
+  onRename(e) { this.setState({ pmRenameText: e.target.value }); }
+  commitRename() {
+    const kind = this.state.manageKind, from = this.state.projectMenuName, to = this.state.pmRenameText.trim();
+    if (!to) return;
+    if (kind === 'tag') {
+      const v = to.replace(/^#/, '').replace(/\s+/g, '-');
+      this.setState(s => ({ ideas: s.ideas.map(i => ({ ...i, tags: (i.tags || []).map(tg => tg === from ? v : tg) })), projectMenuName: null, manageKind: null, pmRenaming: false, browseKey: s.browseKey === 'tag:' + from ? 'tag:' + v : s.browseKey }));
+    } else {
+      this.setState(s => ({ ideas: s.ideas.map(i => i.project === from ? { ...i, project: to } : i), projectMenuName: null, manageKind: null, pmRenaming: false, browseKey: s.browseKey === 'proj:' + from ? 'proj:' + to : s.browseKey }));
+    }
+  }
+  onRenameKey(e) { if (e.key === 'Enter') this.commitRename(); }
+  deleteProject() {
+    const kind = this.state.manageKind, from = this.state.projectMenuName;
+    if (kind === 'tag') {
+      this.setState(s => ({ ideas: s.ideas.map(i => ({ ...i, tags: (i.tags || []).filter(tg => tg !== from) })), projectMenuName: null, manageKind: null, pmRenaming: false, browseKey: s.browseKey === 'tag:' + from ? null : s.browseKey }));
+    } else {
+      this.setState(s => ({ ideas: s.ideas.map(i => i.project === from ? { ...i, project: null } : i), projectMenuName: null, manageKind: null, pmRenaming: false, browseKey: s.browseKey === 'proj:' + from ? null : s.browseKey }));
+    }
+  }
+  startNewProject() { this.setState({ newProjectOpen: true, newProjectText: '' }); }
+  closeNewProject() { this.setState({ newProjectOpen: false }); }
+  onNewProjectText(e) { this.setState({ newProjectText: e.target.value }); }
+  commitNewProject() {
+    const name = this.state.newProjectText.trim(); if (!name) return;
+    const nid = this.makeIdea('New idea in ' + name, []);
+    this.setState(s => ({ ideas: s.ideas.map(i => i.id === nid ? { ...i, project: name, title: '' } : i), newProjectOpen: false, noteId: nid }));
+  }
+  onNewProjectKey(e) { if (e.key === 'Enter') this.commitNewProject(); }
+
+  setTheme(k) { this.setState({ theme: k }); }
+  toggleNotifMorning() { this.setState(s => ({ notifMorning: !s.notifMorning })); }
+  toggleNotifEvening() { this.setState(s => ({ notifEvening: !s.notifEvening })); }
+  toggleNotifDue() { this.setState(s => ({ notifDue: !s.notifDue })); }
+  onNotifMorningTime(e) { this.setState({ notifMorningTime: e.target.value }); }
+  onNotifEveningTime(e) { this.setState({ notifEveningTime: e.target.value }); }
+  setTaskToday(id, idx, val) { this.patch(id, i => ({ checklist: i.checklist.map((c, k) => k === idx ? { ...c, today: val } : c) })); }
+  toggleTaskDone(id, idx) { this.patch(id, i => ({ checklist: i.checklist.map((c, k) => k === idx ? { ...c, done: !c.done } : c) })); }
+  clearArchive() { this.setState(s => ({ ideas: s.ideas.filter(i => !i.archived) })); }
+  prevMonth() { const d = new Date(this.state.calRef); d.setMonth(d.getMonth() - 1, 1); this.setState({ calRef: d.getTime() }); }
+  nextMonth() { const d = new Date(this.state.calRef); d.setMonth(d.getMonth() + 1, 1); this.setState({ calRef: d.getTime() }); }
+  selectDay(key) { this.setState({ selectedDay: key }); }
+
+  renderVals() {
+    const t = this.theme(); const S = this.state; const now = new Date();
+    const byDay = this.byDay(); const todayKey = this.dayKey(now.getTime());
+    const loggedToday = (byDay[todayKey] || 0) > 0;
+    const dueColorFor = (info) => info && info.overdue ? '#C0492F' : t.accent;
+
+    const streakFrom = (off) => { let n = 0; const d = new Date(now); d.setHours(0,0,0,0); d.setDate(d.getDate() - off); while (byDay[this.dayKey(d.getTime())]) { n++; d.setDate(d.getDate() - 1); } return n; };
+    let streakText;
+    if (loggedToday) streakText = 'Captured today — add more whenever something comes to mind.';
+    else streakText = 'A blank page is a good place to start.';
+
+    const hour = now.getHours();
+    const greeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    const todayLabel = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+    // grid
+    const WEEKS = 18;
+    const start = new Date(now); start.setHours(0,0,0,0); start.setDate(start.getDate() - start.getDay() - (WEEKS - 1) * 7);
+    const grid = [];
+    for (let w = 0; w < WEEKS; w++) { const col = []; for (let dn = 0; dn < 7; dn++) { const day = new Date(start); day.setDate(start.getDate() + w * 7 + dn); const future = day > now; const c = byDay[this.dayKey(day.getTime())] || 0; col.push({ bg: future ? 'transparent' : this.levelColor(c), tip: day.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + (c ? ' · ' + c : '') }); } grid.push(col); }
+    const legend = [0,1,2,3,4].map(c => this.levelColor(c));
+    const totalLabel = this.active().length + ' ideas captured';
+
+    const sorted = [...this.active()].sort((a, b) => b.createdAt - a.createdAt);
+    const vm = (i) => { const di = this.dueInfo(i.due); return { id: i.id, title: i.title || 'Untitled idea', dateLabel: this.fmtShort(i.createdAt), metaLine: this.metaLine(i), projectName: i.project || '', dueLabel: di ? di.label : '', dueColor: dueColorFor(di), open: () => { if (this.rowGuarded()) return; this.openReader(i.id); }, rowDown: (e) => this.onRowDown(e), rowMove: (e) => this.onRowMove(e), rowUp: (e) => this.onRowUp(e, i.id) }; };
+    const recent = sorted.slice(0, 5).map(vm);
+
+    // today's focus tasks (selected checklist items) + suggestions
+    const todayFocus = [];
+    sorted.forEach(i => (i.checklist || []).forEach((c, idx) => {
+      if (c.today) todayFocus.push({
+        text: c.text, done: c.done, ideaTitle: i.title || 'Untitled idea',
+        toggle: () => this.toggleTaskDone(i.id, idx),
+        remove: () => this.setTaskToday(i.id, idx, false),
+        openIdea: () => this.openReader(i.id),
+        boxBorder: c.done ? t.accent : t.line, boxBg: c.done ? t.accent : 'transparent',
+        color: c.done ? t.inkFaint : t.ink, strike: c.done ? 'line-through' : 'none',
+      });
+    }));
+    const todayDone = todayFocus.filter(x => x.done).length;
+    const todayFocusLabel = todayFocus.length ? todayDone + ' of ' + todayFocus.length + ' done' : '';
+    const suggestedRaw = [];
+    sorted.forEach(i => (i.checklist || []).forEach((c, idx) => {
+      if (!c.today && !c.done) suggestedRaw.push({ text: c.text, ideaTitle: i.title || 'Untitled idea', add: () => this.setTaskToday(i.id, idx, true) });
+    }));
+    const suggestedTasks = suggestedRaw.slice(0, 4);
+
+    // due soon
+    const dueSoonRaw = sorted.filter(i => { const di = this.dueInfo(i.due); return di && di.diff <= 7; }).sort((a, b) => a.due - b.due);
+    const dueSoon = dueSoonRaw.slice(0, 4).map(i => { const di = this.dueInfo(i.due); return { title: i.title || 'Untitled idea', dueLabel: di.label, dueColor: dueColorFor(di), open: () => this.openReader(i.id) }; });
+
+    // folders
+    const projMap = {}, tagMap = {};
+    this.active().forEach(i => { if (i.project) projMap[i.project] = (projMap[i.project] || 0) + 1; (i.tags || []).forEach(tg => tagMap[tg] = (tagMap[tg] || 0) + 1); });
+    const projects = Object.keys(projMap).sort((a, b) => projMap[b] - projMap[a]).map(name => ({ name, countLabel: projMap[name] + (projMap[name] === 1 ? ' idea' : ' ideas'), open: () => this.openBrowse('proj:' + name), menu: (e) => { if (e) e.stopPropagation(); this.openManage('project', name); } }));
+    const tagFolders = Object.keys(tagMap).sort((a, b) => tagMap[b] - tagMap[a]).map(tag => ({ tag, count: tagMap[tag], open: () => this.openBrowse('tag:' + tag), menu: (e) => { if (e) e.stopPropagation(); this.openManage('tag', tag); } }));
+    const archivedList = this.state.ideas.filter(i => i.archived);
+
+    const topTags = Object.keys(tagMap).sort((a, b) => tagMap[b] - tagMap[a]).slice(0, 8);
+    const chipTags = []; S.captureTags.forEach(tg => { if (!chipTags.includes(tg)) chipTags.push(tg); }); topTags.forEach(tg => { if (!chipTags.includes(tg)) chipTags.push(tg); });
+    const captureChips = chipTags.slice(0, 12).map(tag => { const active = S.captureTags.includes(tag); return { tag, toggle: () => this.toggleCaptureTag(tag), bg: active ? t.accent : t.surface, color: active ? '#fff' : t.inkSoft, border: active ? t.accent : t.line }; });
+    const canSave = S.captureText.trim().length > 0;
+
+    // browse
+    const isBrowsing = !!S.browseKey && !S.search.trim();
+    let browseTitle = '', browseList = [], browseCountLabel = '', browseManageable = false, browseManageKind = null, browseManageName = '';
+    if (S.browseKey) {
+      const [kind, ...rest] = S.browseKey.split(':'); const val = rest.join(':'); let list;
+      if (kind === 'proj') { browseTitle = val; browseManageable = true; browseManageKind = 'project'; browseManageName = val; list = sorted.filter(i => i.project === val); }
+      else if (kind === 'archived') { browseTitle = 'Archived'; list = archivedList.sort((a, b) => b.createdAt - a.createdAt); }
+      else { browseTitle = '#' + val; browseManageable = true; browseManageKind = 'tag'; browseManageName = val; list = sorted.filter(i => (i.tags || []).includes(val)); }
+      browseList = list.map(vm); browseCountLabel = list.length + (list.length === 1 ? ' idea' : ' ideas');
+    }
+
+    const q = S.search.trim().toLowerCase();
+    const searchActive = q.length > 0;
+    let searchResults = [], searchCountLabel = '';
+    if (searchActive) {
+      const list = sorted.filter(i => (i.title || '').toLowerCase().includes(q) || (i.body || '').toLowerCase().includes(q) || (i.project || '').toLowerCase().includes(q) || (i.tags || []).some(tg => tg.toLowerCase().includes(q)));
+      searchResults = list.map(vm); searchCountLabel = list.length + (list.length === 1 ? ' result' : ' results');
+    }
+    const showFolders = !isBrowsing && !searchActive && S.ideasView === 'folders';
+    const showAllList = !isBrowsing && !searchActive && S.ideasView === 'all';
+    const showTabs = !isBrowsing && !searchActive;
+
+    // ideas tab toggle
+    const setViewAll = () => this.setIdeasView('all');
+    const setViewFolders = () => this.setIdeasView('folders');
+    const tabAllBg = S.ideasView === 'all' ? t.accent : 'transparent';
+    const tabAllColor = S.ideasView === 'all' ? '#fff' : t.inkSoft;
+    const tabFoldersBg = S.ideasView === 'folders' ? t.accent : 'transparent';
+    const tabFoldersColor = S.ideasView === 'folders' ? '#fff' : t.inkSoft;
+
+    // all-ideas flat list: sortable + tag filter
+    const sortLabel = S.ideasSort === 'recent' ? 'Newest' : S.ideasSort === 'oldest' ? 'Oldest' : 'Due date';
+    const allFiltered = this.active().filter(i => !S.ideasFilter || (i.tags || []).includes(S.ideasFilter));
+    const allSorted = [...allFiltered].sort((a, b) => {
+      if (S.ideasSort === 'oldest') return a.createdAt - b.createdAt;
+      if (S.ideasSort === 'due') {
+        if (a.due && b.due) return a.due - b.due;
+        if (a.due) return -1; if (b.due) return 1;
+        return b.createdAt - a.createdAt;
+      }
+      return b.createdAt - a.createdAt;
+    });
+    const allList = allSorted.map(vm);
+    const allCountLabel = allFiltered.length + (allFiltered.length === 1 ? ' idea' : ' ideas');
+    const filterTags = Object.keys(tagMap).sort((a, b) => tagMap[b] - tagMap[a]);
+    const filterChips = [{ tag: null, label: 'All', active: !S.ideasFilter }]
+      .concat(filterTags.map(tg => ({ tag: tg, label: '#' + tg, active: S.ideasFilter === tg })))
+      .map(c => ({ label: c.label, select: () => this.setIdeasFilter(c.tag), bg: c.active ? t.accent : t.surface, color: c.active ? '#fff' : t.inkSoft, border: c.active ? t.accent : t.line }));
+
+    // NOTE editor vm
+    const raw = S.ideas.find(i => i.id === S.noteId) || null;
+    let n = {};
+    if (raw) {
+      const di = this.dueInfo(raw.due);
+      const ex = raw.extras || {};
+      const showChecklist = !!ex.checklist || (raw.checklist || []).length > 0;
+      const showSketch = !!ex.sketch;
+      const showLinks = !!ex.links || (raw.links || []).length > 0;
+      const dn = new Date(now);
+      const upcoming = (days, h) => { const d = new Date(now); d.setDate(d.getDate() + days); d.setHours(h || 17, 0, 0, 0); return d.getTime(); };
+      const sat = (() => { const d = new Date(now); const add = (6 - d.getDay() + 7) % 7 || 6; d.setDate(d.getDate() + add); d.setHours(12, 0, 0, 0); return d.getTime(); })();
+      const dueOptsDefs = [ ['Today', upcoming(0)], ['Tomorrow', upcoming(1)], ['This weekend', sat], ['Next week', upcoming(7)], ['Clear', null] ];
+      const dueOptions = dueOptsDefs.map(([label, ts]) => ({ label, border: t.line, bg: t.bg, color: label === 'Clear' ? t.inkFaint : t.ink, pick: () => this.setDue(ts) }));
+      const projOpts = Object.keys(projMap);
+      if (raw.project && !projOpts.includes(raw.project)) projOpts.push(raw.project);
+      const projectOptions = projOpts.map(name => ({ name, pick: () => this.setProject(name), border: raw.project === name ? t.accent : t.line, bg: raw.project === name ? t.accent : t.bg, color: raw.project === name ? '#fff' : t.ink }));
+      const open = (raw.checklist || []).filter(c => !c.done).length;
+      n = {
+        title: raw.title || '', body: raw.body || '',
+        savedLabel: this.fmtShort(raw.createdAt) === 'Today' ? 'Saved' : 'Saved · ' + this.fmtShort(raw.createdAt),
+        projLabel: raw.project || 'No project', projChipBg: raw.project ? t.accentSoft : t.surface, projChipColor: raw.project ? t.accentInk : t.inkSoft,
+        projectPanelOpen: S.metaPanel === 'project', clearProject: () => this.setProject(null), projectOptions,
+        newProjText: S.newProjText,
+        dueLabel: di ? di.label : 'Add due date', dueChipBg: di ? (di.overdue ? 'rgba(192,73,47,.1)' : t.accentSoft) : t.surface, dueChipColor: di ? (di.overdue ? '#C0492F' : t.accentInk) : t.inkSoft, dueBorder: di && di.overdue ? 'rgba(192,73,47,.3)' : t.line,
+        duePanelOpen: S.metaPanel === 'due', dueOptions,
+        tags: (raw.tags || []).map(tg => ({ text: tg, remove: () => this.removeTag(tg) })), newTagText: S.newTagText,
+        suggestTags: Object.keys(tagMap).filter(tg => !(raw.tags || []).includes(tg)).slice(0, 14).map(tg => ({ text: tg, add: () => this.addTagToNote(tg) })),
+        hasSuggest: Object.keys(tagMap).filter(tg => !(raw.tags || []).includes(tg)).length > 0,
+        dueInputValue: raw.due ? (() => { const d = new Date(raw.due); const p = x => String(x).padStart(2, '0'); return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()); })() : '',
+        hasExtras: showChecklist || showSketch || showLinks,
+        showChecklist, showSketch, showLinks,
+        checklistLabel: (raw.checklist || []).length ? ((raw.checklist.filter(c => c.done).length) + ' of ' + raw.checklist.length + ' done') : 'Nothing yet',
+        checklist: (raw.checklist || []).map((c, idx) => ({ text: c.text, done: c.done, toggle: () => this.toggleChk(idx), remove: () => this.removeChk(idx), boxBorder: c.done ? t.accent : t.line, boxBg: c.done ? t.accent : 'transparent', color: c.done ? t.inkFaint : t.ink, strike: c.done ? 'line-through' : 'none' })),
+        newTaskText: S.newTaskText,
+        sketchSlots: [0, 1].map(k => ({ id: 'sketch-' + raw.id + '-' + k })),
+        links: (raw.links || []).map((l, idx) => ({ label: l.label, remove: () => this.removeLink(idx) })), newLinkText: S.newLinkText,
+        addOptions: [
+          !showChecklist && { label: 'Checklist', add: () => this.addExtra('checklist') },
+          !showSketch && { label: 'Sketch', add: () => this.addExtra('sketch') },
+          !showLinks && { label: 'Link', add: () => this.addExtra('links') },
+        ].filter(Boolean),
+        archive: () => this.archiveNote(), archiveLabel: raw.archived ? 'Unarchive' : 'Archive', del: () => this.deleteNote(),
+      };
+    }
+
+    // NOTE reader vm (read-only)
+    const rRaw = S.ideas.find(i => i.id === S.readerId) || null;
+    let r = {};
+    if (rRaw) {
+      const rdi = this.dueInfo(rRaw.due);
+      r = {
+        title: rRaw.title || 'Untitled idea',
+        dateLabel: this.fmtShort(rRaw.createdAt) === 'Today' ? 'Captured today' : 'Captured ' + this.fmtShort(rRaw.createdAt),
+        hasProject: !!rRaw.project, project: rRaw.project || '',
+        hasDue: !!rdi, dueLabel: rdi ? rdi.label : '',
+        dueChipBg: rdi ? (rdi.overdue ? 'rgba(192,73,47,.1)' : t.accentSoft) : t.surface,
+        dueChipColor: rdi ? (rdi.overdue ? '#C0492F' : t.accentInk) : t.inkSoft,
+        hasTags: (rRaw.tags || []).length > 0, tags: rRaw.tags || [],
+        hasBody: !!(rRaw.body || '').trim(), body: rRaw.body || '',
+        hasChecklist: (rRaw.checklist || []).length > 0,
+        checklist: (rRaw.checklist || []).map((c, idx) => ({
+          text: c.text, done: c.done,
+          toggle: () => this.toggleTaskDone(rRaw.id, idx),
+          boxBorder: c.done ? t.accent : t.line, boxBg: c.done ? t.accent : 'transparent',
+          color: c.done ? t.inkFaint : t.ink, strike: c.done ? 'line-through' : 'none',
+          toggleToday: () => this.setTaskToday(rRaw.id, idx, !c.today),
+          todayBorder: c.today ? t.accent : t.line, todayBg: c.today ? t.accentSoft : 'transparent', todayColor: c.today ? t.accentInk : t.inkSoft,
+        })),
+        hasLinks: (rRaw.links || []).length > 0, links: (rRaw.links || []).map(l => ({ label: l.label })),
+      };
+    }
+
+    // plan your day: every open task, grouped by urgency so nothing is missed
+    const pq = (S.taskPickerSearch || '').trim().toLowerCase();
+    const matchTask = (i, c) => !pq || (c.text + ' ' + (i.title || '') + ' ' + (i.project || '')).toLowerCase().includes(pq);
+    const mkPlanTask = (i, c, idx) => ({
+      text: c.text, inToday: !!c.today, notInToday: !c.today,
+      toggle: () => this.setTaskToday(i.id, idx, !c.today),
+      boxBorder: c.today ? t.accent : t.line, boxBg: c.today ? t.accent : 'transparent',
+      rowBg: c.today ? t.accentSoft : t.surface,
+    });
+    const groupDefs = [
+      { label: 'Overdue', test: (di) => di && di.overdue },
+      { label: 'This week', test: (di) => di && !di.overdue && di.diff <= 7 },
+      { label: 'Anytime', test: (di) => !di || (di && di.diff > 7) },
+    ];
+    const planGroups = groupDefs.map(g => {
+      const ideasIn = [];
+      sorted.forEach(i => {
+        const di = this.dueInfo(i.due);
+        if (!g.test(di)) return;
+        const tasks = (i.checklist || []).map((c, idx) => ({ c, idx })).filter(o => !o.c.done && matchTask(i, o.c));
+        if (!tasks.length) return;
+        ideasIn.push({
+          id: i.id, title: i.title || 'Untitled idea', open: () => this.openReader(i.id),
+          hasDue: !!di, dueLabel: di ? di.label : '', dueColor: di && di.overdue ? '#C0492F' : t.accent,
+          tasks: tasks.map(o => mkPlanTask(i, o.c, o.idx)),
+        });
+      });
+      const taskCount = ideasIn.reduce((n, x) => n + x.tasks.length, 0);
+      return { label: g.label, ideas: ideasIn, has: ideasIn.length > 0, countLabel: taskCount + (taskCount === 1 ? ' task' : ' tasks') };
+    }).filter(g => g.has);
+
+    // ideas with no open tasks — surfaced quietly so they aren't forgotten
+    const looseIdeas = sorted.filter(i => {
+      const openN = (i.checklist || []).filter(c => !c.done).length;
+      return openN === 0 && (!pq || (i.title || '').toLowerCase().includes(pq) || (i.project || '').toLowerCase().includes(pq));
+    }).map(i => ({ id: i.id, title: i.title || 'Untitled idea', dateLabel: this.fmtShort(i.createdAt), open: () => this.openReader(i.id) }));
+
+    const planSelected = this.active().reduce((n, i) => n + (i.checklist || []).filter(c => c.today).length, 0);
+    const planSelectedLabel = planSelected ? planSelected + (planSelected === 1 ? ' task chosen for today' : ' tasks chosen for today') : 'Nothing chosen for today yet';
+    const planEmpty = planGroups.length === 0 && looseIdeas.length === 0;
+    const pickerEmptyText = pq ? 'Nothing matches "' + S.taskPickerSearch.trim() + '".' : 'No ideas yet — capture one and add a few steps.';
+
+    // calendar
+    const dueByDay = {}; this.active().forEach(i => { if (i.due) { const k = this.dayKey(i.due); dueByDay[k] = (dueByDay[k] || 0) + 1; } });
+    const dow = ['S','M','T','W','T','F','S'];
+    const cal = new Date(S.calRef);
+    const monthLabel = cal.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    const first = new Date(cal.getFullYear(), cal.getMonth(), 1);
+    const gridStart = new Date(first); gridStart.setDate(1 - first.getDay());
+    const lastDay = new Date(cal.getFullYear(), cal.getMonth() + 1, 0).getDate();
+    const cells = first.getDay() + lastDay > 35 ? 42 : 35;
+    const calFill = [ 'transparent', this.rgba(0.12), this.rgba(0.26), this.rgba(0.42), this.rgba(0.58) ];
+    const calDays = [];
+    for (let nn = 0; nn < cells; nn++) {
+      const day = new Date(gridStart); day.setDate(gridStart.getDate() + nn);
+      const inMonth = day.getMonth() === cal.getMonth();
+      const k = this.dayKey(day.getTime());
+      const c = byDay[k] || 0; const hasDue = (dueByDay[k] || 0) > 0;
+      const isToday = k === todayKey; const selected = k === S.selectedDay;
+      const lvl = c >= 4 ? 4 : c;
+      const fill = inMonth ? calFill[lvl] : 'transparent';
+      const color = !inMonth ? t.inkFaint : (lvl >= 3 ? '#fff' : (isToday ? t.accent : t.ink));
+      const ring = selected ? ('inset 0 0 0 2px ' + t.accent) : (isToday ? ('inset 0 0 0 1.6px ' + this.rgba(0.5)) : 'none');
+      calDays.push({ day: day.getDate(), select: () => this.selectDay(k), fill, color, weight: (isToday || selected) ? 700 : 500, ring, due: hasDue, dueColor: t.accent });
+    }
+    const [yy, mo, da] = S.selectedDay.split('-').map(Number);
+    const selDate = new Date(yy, mo, da);
+    const selectedLabel = todayKey === S.selectedDay ? 'Today' : selDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+    const dayList = sorted.filter(i => this.dayKey(i.createdAt) === S.selectedDay || (i.due && this.dayKey(i.due) === S.selectedDay));
+    const dayIdeas = dayList.map(i => { const di = this.dueInfo(i.due); const dueHere = i.due && this.dayKey(i.due) === S.selectedDay; return { ...vm(i), dueHere, dueColor: dueColorFor(di) }; });
+
+    const openTasks = [];
+    sorted.forEach(i => (i.checklist || []).forEach((c, idx) => { if (!c.done) openTasks.push({ text: c.text, ideaTitle: i.title || 'Untitled idea', toggle: () => this.patch(i.id, ii => ({ checklist: ii.checklist.map((x, k) => k === idx ? { ...x, done: !x.done } : x) })), open: () => this.openReader(i.id) }); }));
+
+    // project manage menu
+    const pmName = S.projectMenuName;
+    const isTagManage = S.manageKind === 'tag';
+    const pmCount = pmName ? (isTagManage ? (tagMap[pmName] || 0) : (projMap[pmName] || 0)) : 0;
+    const pm = { name: (isTagManage ? '#' : '') + (pmName || ''), countLabel: pmName ? pmCount + (pmCount === 1 ? ' idea' : ' ideas') : '', menuMode: !!pmName && !S.pmRenaming, renaming: !!pmName && S.pmRenaming, renameText: S.pmRenameText,
+      heading: isTagManage ? 'RENAME TAG' : 'RENAME PROJECT', renameAction: isTagManage ? 'Rename tag' : 'Rename project', deleteAction: isTagManage ? 'Delete tag' : 'Delete project', helper: isTagManage ? 'Deleting removes this tag from every idea — the ideas stay.' : 'Deleting keeps the ideas — it just unfiles them.' };
+
+    const TH = this.themes();
+    const themeOptions = ['paper','cool','mono'].map(k => { const th = TH[k]; const active = S.theme === k; return { name: th.name, desc: th.desc, select: () => this.setTheme(k), active, swatch: th.bg, swInk: th.ink, font: th.fdisp, rowBg: active ? this.rgba(0.08) : 'transparent' }; });
+    const col = (v) => S.screen === v ? t.accent : t.inkFaint;
+
+    return {
+      t,
+      scrollRef: this.scrollRef, oceanRef: this.oceanRef,
+      showToday: S.screen === 'today', showIdeas: S.screen === 'ideas', showCalendar: S.screen === 'calendar',
+      greeting, todayLabel, loggedToday, notLoggedToday: !loggedToday, streakText,
+      hasDueSoon: dueSoon.length > 0, dueSoon,
+      grid, legend, totalLabel, recent,
+      todayFocus, todayFocusLabel, hasTodayFocus: todayFocus.length > 0, noTodayFocus: todayFocus.length === 0,
+      suggestedTasks, hasSuggestedTasks: suggestedTasks.length > 0,
+      goToday: () => this.setScreen('today'), goIdeas: () => this.setScreen('ideas'), goCalendar: () => this.setScreen('calendar'),
+      colToday: col('today'), colIdeas: col('ideas'), colCal: col('calendar'),
+      openCapture: () => this.openCapture(), closeCapture: () => this.closeCapture(),
+      captureOpen: S.captureOpen, captureText: S.captureText, onCaptureInput: (e) => this.onCaptureInput(e),
+      captureChips, saveCapture: () => this.saveCapture(), expandQuick: () => this.expandQuick(),
+      newCaptureTag: S.newCaptureTag, onNewCaptureTag: (e) => this.onNewCaptureTag(e), onNewCaptureTagKey: (e) => this.onNewCaptureTagKey(e), onDueInput: (e) => this.setDueCustom(e),
+      saveBg: canSave ? t.accent : this.rgba(0.4), saveCursor: canSave ? 'pointer' : 'not-allowed',
+      sheetRef: this.sheetRef, onHandleDown: (e) => this.onHandleDown(e), onHandleMove: (e) => this.onHandleMove(e), onHandleUp: (e) => this.onHandleUp(e),
+      search: S.search, onSearch: (e) => this.onSearch(e), searchActive, searchResults, searchCountLabel,
+      isBrowsing, browseTitle, browseList, browseCountLabel, browseManageable, clearBrowse: () => this.clearBrowse(),
+      openProjectMenu: () => this.openManage(browseManageKind, browseManageName),
+      showFolders, projects, tagFolders, startNewProject: () => this.startNewProject(),
+      showTabs, showAllList, setViewAll, setViewFolders,
+      tabAllBg, tabAllColor, tabFoldersBg, tabFoldersColor,
+      cycleSort: () => this.cycleSort(), sortLabel, allCountLabel, filterChips, allList,
+      hasArchive: archivedList.length > 0, archiveCount: archivedList.length, openArchive: () => this.openBrowse('archived'),
+      noteOpen: !!raw, n, closeNote: () => this.closeNote(),
+      readerOpen: !!rRaw, r, closeReader: () => this.closeReader(), editFromReader: () => this.editFromReader(),
+      taskPickerOpen: S.taskPickerOpen, taskPickerSearch: S.taskPickerSearch, onTaskPickerSearch: (e) => this.onTaskPickerSearch(e),
+      openTaskPicker: () => this.openTaskPicker(), closeTaskPicker: () => this.closeTaskPicker(),
+      pickerTasks: planGroups, planGroups, hasPlanGroups: planGroups.length > 0,
+      looseIdeas, hasLooseIdeas: looseIdeas.length > 0, looseCount: looseIdeas.length,
+      planShowLoose: S.planShowLoose, togglePlanLoose: () => this.togglePlanLoose(),
+      looseToggleLabel: S.planShowLoose ? 'Hide' : 'Show',
+      planSelectedLabel, planEmpty, pickerEmptyText,
+      onTitle: (e) => this.onTitle(e), onBody: (e) => this.onBody(e),
+      noteMenuOpen: S.noteMenuOpen, toggleNoteMenu: () => this.toggleNoteMenu(), closeNoteMenu: () => this.closeNoteMenu(),
+      toggleProjectPanel: () => this.toggleMetaPanel('project'), toggleDuePanel: () => this.toggleMetaPanel('due'),
+      onNewProj: (e) => this.onNewProj(e), onNewProjKey: (e) => this.onNewProjKey(e),
+      onNewTag: (e) => this.onNewTag(e), onNewTagKey: (e) => this.onNewTagKey(e),
+      onNewTask: (e) => this.onNewTask(e), onNewTaskKey: (e) => this.onNewTaskKey(e),
+      onNewLink: (e) => this.onNewLink(e), onNewLinkKey: (e) => this.onNewLinkKey(e),
+      dow, monthLabel, calDays, prevMonth: () => this.prevMonth(), nextMonth: () => this.nextMonth(),
+      selectedLabel, dayIdeas, hasDayIdeas: dayIdeas.length > 0, noDayIdeas: dayIdeas.length === 0,
+      openTasks, openTaskCount: openTasks.length + ' open',
+      projectMenuOpen: !!pmName, pm, closeProjectMenu: () => this.closeProjectMenu(),
+      startRename: () => this.startRename(), onRename: (e) => this.onRename(e), onRenameKey: (e) => this.onRenameKey(e), commitRename: () => this.commitRename(), deleteProject: () => this.deleteProject(),
+      newProjectOpen: S.newProjectOpen, newProjectText: S.newProjectText, closeNewProject: () => this.closeNewProject(), onNewProjectText: (e) => this.onNewProjectText(e), onNewProjectKey: (e) => this.onNewProjectKey(e), commitNewProject: () => this.commitNewProject(), newProjBg: S.newProjectText.trim() ? t.accent : this.rgba(0.4),
+      themeOptions,
+      showSettings: S.screen === 'settings',
+      goSettings: () => this.setScreen('settings'),
+      colSettings: col('settings'),
+      showFab: S.screen !== 'settings',
+      notifMorningOn: S.notifMorning,
+      notifMorningBg: S.notifMorning ? t.accent : t.line,
+      notifMorningKnob: S.notifMorning ? '18px' : '2px',
+      toggleNotifMorning: () => this.toggleNotifMorning(),
+      notifMorningTime: S.notifMorningTime,
+      onNotifMorningTime: (e) => this.onNotifMorningTime(e),
+      notifEveningOn: S.notifEvening,
+      notifEveningBg: S.notifEvening ? t.accent : t.line,
+      notifEveningKnob: S.notifEvening ? '18px' : '2px',
+      toggleNotifEvening: () => this.toggleNotifEvening(),
+      notifEveningTime: S.notifEveningTime,
+      onNotifEveningTime: (e) => this.onNotifEveningTime(e),
+      notifDueBg: S.notifDue ? t.accent : t.line,
+      notifDueKnob: S.notifDue ? '18px' : '2px',
+      toggleNotifDue: () => this.toggleNotifDue(),
+      exportLabel: this.active().length + ' ideas',
+      clearArchive: () => this.clearArchive(),
+      archiveCountLabel: S.ideas.filter(i => i.archived).length + ' archived',
+    };
+  }
+}
+</script>
+<script>
+(async () => {
+  if (!document.title || !document.title.trim()) document.title = "Margin";
+  // Prepend so page-supplied @page / break rules (deck-stage's margin:0,
+  // author CSS) keep source-order precedence over the baseline.
+  const baseCss = document.createElement('style');
+  baseCss.textContent = "@media print {\n  figure, table { break-inside: avoid; }\n  *, *::before, *::after {\n    print-color-adjust: exact; -webkit-print-color-adjust: exact;\n    backdrop-filter: none !important; -webkit-backdrop-filter: none !important;\n    animation-delay: -99s !important; animation-duration: .001s !important;\n    animation-iteration-count: 1 !important; animation-fill-mode: both !important;\n    animation-play-state: running !important; transition-duration: 0s !important;\n  }\n}";
+  document.head.prepend(baseCss);
+  if (document.readyState === 'loading') {
+    await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
+  }
+  let ds = document.querySelector('deck-stage');
+  // whenDefined never resolves when nothing registers the element, so only
+  // await it when a <deck-stage> tag exists (and race a timeout regardless).
+  if (ds && !customElements.get('deck-stage')) {
+    try {
+      await Promise.race([
+        customElements.whenDefined('deck-stage'),
+        new Promise((r) => setTimeout(r, 3000)),
+      ]);
+    } catch (e) {}
+    ds = document.querySelector('deck-stage');
+  }
+  // dc-runtime assigns window.DCLogic at init and mounts into #dc-root on
+  // DOMContentLoaded; settle on that subtree so React has rendered before
+  // print(). Non-DC pages fall through to weighing body.
+  const isDc = !ds && 'DCLogic' in window;
+  const settleRoot = ds || (isDc ? document.getElementById('dc-root') : null) || document.body;
+  if (settleRoot) {
+    // Weigh only content children — skip script/style/template so inline
+    // Babel/CSS doesn't register as stable "content" before the framework
+    // has mounted anything.
+    const MEDIA = 'img,svg,canvas,video,picture,iframe,embed,object';
+    const weigh = () => {
+      let text = 0, media = 0;
+      for (const c of settleRoot.children) {
+        const t = c.tagName;
+        if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+        text += (c.textContent || '').trim().length;
+        media += c.querySelectorAll(MEDIA).length + (c.matches(MEDIA) ? 1 : 0);
+      }
+      return text + media * 100;
+    };
+    // "Non-zero and stable" alone is not sufficient to mean rendered: generic
+    // body can carry a static shell while async main content is pending, and
+    // #dc-root can carry the root DC's static text while child refs are still
+    // .sc-placeholder boxes. Gate generic on readyState 'complete', and never
+    // accept stability while a dc-runtime placeholder is present.
+    const isGeneric = settleRoot === document.body;
+    const deadline = Date.now() + 15000;
+    let last = -1, stable = 0;
+    while (Date.now() < deadline) {
+      const n = weigh();
+      const ready =
+        (!isGeneric || document.readyState === 'complete') &&
+        !settleRoot.querySelector('.sc-placeholder');
+      if (n > 0 && n === last && ready) { if (++stable >= 2) break; } else { stable = 0; }
+      last = n;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+  }
+  // Reveal content gated on scroll or visibility before printing. Lazy <img>,
+  // IntersectionObserver fade-ins, and collapsed <details> don't render while
+  // off-screen, so a long page would print with them blank or closed. Open
+  // every <details>, force native-lazy images eager, and scroll the document
+  // through its full height to trip lazy-load + IO; then wait (bounded) for the
+  // newly-triggered images. Inert for deck-stage (slides aren't scroll-gated).
+  try {
+    for (const d of document.querySelectorAll('details')) d.open = true;
+    for (const img of document.querySelectorAll('img[loading="lazy"]'))
+      img.loading = 'eager';
+    const scroller = document.scrollingElement || document.documentElement;
+    const full = Math.max(scroller.scrollHeight, document.body.scrollHeight);
+    const step = window.innerHeight || 800;
+    for (let y = 0; y <= full; y += step) {
+      window.scrollTo(0, y);
+      await new Promise((r) => requestAnimationFrame(r));
+    }
+    window.scrollTo(0, 0);
+    await Promise.race([
+      Promise.all(
+        [...document.images].map((img) =>
+          img.complete
+            ? null
+            : new Promise((res) => {
+                img.addEventListener('load', res, { once: true });
+                img.addEventListener('error', res, { once: true });
+              })
+        )
+      ),
+      new Promise((r) => setTimeout(r, 4000)),
+    ]);
+  } catch (e) {}
+  try { await document.fonts.ready; } catch (e) {}
+  // Jump every animation to its end state so print() never captures a slide
+  // mid-entrance. Ordering matters: the 0s-transition style must be live
+  // BEFORE data-deck-active is set so attribute-keyed transitions don't
+  // start a (now-0s) run from the pre-active base.
+  const st = document.createElement('style');
+  st.textContent = '*,*::before,*::after{animation-delay:-99s !important;animation-duration:.001s !important;animation-iteration-count:1 !important;animation-fill-mode:both !important;animation-play-state:running !important;transition-duration:0s !important}';
+  document.head.appendChild(st);
+  for (const d of document.querySelectorAll('deck-stage')) {
+    for (const c of d.children) {
+      const t = c.tagName;
+      if (t === 'SCRIPT' || t === 'STYLE' || t === 'TEMPLATE') continue;
+      c.setAttribute('data-deck-active', '');
+    }
+  }
+  // Re-append deck-stage's @page last so no author @page can add a margin and
+  // spill each full-bleed slide onto two sheets. Backstop for old copies.
+  if (ds) {
+    let pg = document.getElementById('deck-stage-print-page');
+    if (!pg) {
+      pg = document.createElement('style');
+      pg.textContent = '@page{size:' + (+ds.getAttribute('width') || 1920) +
+        'px ' + (+ds.getAttribute('height') || 1080) + 'px;margin:0}';
+    }
+    document.body.appendChild(pg);
+  }
+  try {
+    const sweep = () => {
+      for (const a of document.getAnimations()) {
+        try { a.finish(); } catch (e) {
+          try { a.currentTime = (a.effect && a.effect.getComputedTiming().duration) || 0; a.pause(); } catch (e2) {}
+        }
+      }
+    };
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+    sweep();
+    await new Promise((r) => requestAnimationFrame(r));
+  } catch (e) {}
+  // Size the PDF page to the rendered design unless the file opted into
+  // standard paper via @page{size:letter|A4|…}. Decks own their own @page.
+  var __m = null;
+  try { __m = (() => {
+  var docEl = document.documentElement;
+  var doc = { width: docEl.scrollWidth, height: docEl.scrollHeight };
+
+  var ds = document.querySelector('deck-stage');
+  if (ds) {
+    var dw = Number(ds.getAttribute('width')) || 1920;
+    var dh = Number(ds.getAttribute('height')) || 1080;
+    var n = typeof ds.length === 'number' ? ds.length : ds.children.length;
+    var idx = typeof ds.index === 'number' ? ds.index : 0;
+    var frames = [];
+    for (var i = 0; i < n; i++) frames.push({ left: 0, top: 0, width: dw, height: dh });
+    return { kind: 'deck', doc: doc, frames: frames,
+      authored: frames.map(function(){return{width:true,height:true}}),
+      deck: { width: dw, height: dh, slideCount: n, index: idx },
+      signals: { paperPage: false, pxPage: false } };
+  }
+
+  var paperPage = false, pxPage = false;
+  var eachRule = function (fn) {
+    for (var s = 0; s < document.styleSheets.length; s++) {
+      var rs; try { rs = document.styleSheets[s].cssRules; } catch (e) { continue; }
+      for (var r = 0; r < rs.length; r++) {
+        fn(rs[r]);
+        if (rs[r].cssRules) for (var n = 0; n < rs[r].cssRules.length; n++) fn(rs[r].cssRules[n]);
+      }
+    }
+  };
+  eachRule(function (r) {
+    if (r.type !== 6) return;
+    var m = /\bsize\s*:\s*([^;}]+)/i.exec(r.cssText || '');
+    if (!m) return;
+    if (/\b(letter|a[3-5]|legal|ledger)\b/i.test(m[1])) paperPage = true;
+    if (/\d+(?:\.\d+)?px\b/i.test(m[1])) pxPage = true;
+  });
+  var signals = { paperPage: paperPage, pxPage: pxPage };
+
+  if (paperPage) {
+    return { kind: 'paper-doc', doc: doc, signals: signals,
+      frames: [{ left: 0, top: 0, width: doc.width, height: doc.height }],
+      authored: [{ width: false, height: false }] };
+  }
+
+  var pxVal = function (v) {
+    var m = /^(\d+(?:\.\d+)?)px$/.exec(v || ''); return m ? +m[1] : 0;
+  };
+  var authoredPx = function (el, prop) {
+    if (pxVal(el.style[prop])) return true;
+    var attr = el.getAttribute(prop);
+    if (attr && /^\d+$/.test(attr)) return true;
+    var hit = false;
+    eachRule(function (r) {
+      if (hit || r.type !== 1 || !r.style) return;
+      try { if (el.matches(r.selectorText) && pxVal(r.style[prop])) hit = true; } catch (e) {}
+    });
+    return hit;
+  };
+
+  var el = document.body;
+  for (;;) {
+    var kids = [];
+    for (var c = 0; c < el.children.length; c++) {
+      var t = el.children[c].tagName;
+      if (t !== 'SCRIPT' && t !== 'STYLE' && t !== 'TEMPLATE') kids.push(el.children[c]);
+    }
+    if (kids.length !== 1 || !(kids[0] instanceof HTMLElement)) break;
+    el.setAttribute('data-om-frame-wrap', '');
+    el = kids[0];
+    if (authoredPx(el, 'width')) break;
+  }
+
+  var sx = window.scrollX || 0, sy = window.scrollY || 0;
+  var rectOf = function (e) {
+    var r = e.getBoundingClientRect();
+    var oy; try { oy = getComputedStyle(e).overflowY; } catch (err) {}
+    var h = oy === 'visible' ? Math.max(r.height, e.scrollHeight || 0) : r.height;
+    return { left: r.left + sx, top: r.top + sy, width: r.width, height: h };
+  };
+
+  // Multi-frame: ≥2 visible non-fixed children, each with authored px width
+  // AND height, all within ±2px of each other. Off unless the page opts in
+  // via data-om-multi-frame on the stop element — guards against card grids
+  // and pricing tables that match the geometry but aren't separate canvases.
+  if (el.hasAttribute('data-om-multi-frame')) {
+    var cands = [];
+    for (var k = 0; k < el.children.length; k++) {
+      var ch = el.children[k];
+      var cs; try { cs = getComputedStyle(ch); } catch (e) { continue; }
+      if (cs.display === 'none' || cs.visibility === 'hidden' || cs.position === 'fixed') continue;
+      var rc = rectOf(ch);
+      if (rc.width < 2 || rc.height < 2) continue;
+      if (!authoredPx(ch, 'width') || !authoredPx(ch, 'height')) continue;
+      cands.push(rc);
+    }
+    if (cands.length >= 2) {
+      var w0 = cands[0].width, h0 = cands[0].height, ok = true;
+      for (var q = 1; q < cands.length; q++)
+        if (Math.abs(cands[q].width - w0) > 2 || Math.abs(cands[q].height - h0) > 2) ok = false;
+      if (ok) return { kind: 'multi-frame', doc: doc, signals: signals,
+        frames: cands, authored: cands.map(function(){return{width:true,height:true}}) };
+    }
+  }
+
+  return { kind: 'single-canvas', doc: doc, signals: signals,
+    frames: [rectOf(el)],
+    authored: [{ width: authoredPx(el, 'width'), height: authoredPx(el, 'height') }] };
+})(); } catch (e) {}
+  var frame = null;
+  if (__m && __m.kind === 'single-canvas') {
+    var f = __m.frames && __m.frames[0];
+    if (f && f.width >= 200 && f.height >= 200) {
+      frame = f;
+      var fst = document.createElement('style');
+      fst.textContent = '@media print{@page{size:' + f.width + 'px ' + f.height +
+        'px;margin:0}html,body,[data-om-frame-wrap]{padding:0!important;' +
+        'margin:0!important;background:none!important}}';
+      document.body.appendChild(fst);
+    }
+  }
+  // Relax break-inside on oversized elements. An element taller than a
+  // printable page can't honor break-inside: avoid — browsers either overflow
+  // it or push it whole to the next page, leaving a blank gap, then break it
+  // anyway at an arbitrary point. After the final layout (content revealed,
+  // animations jumped), find elements taller than a page that still compute
+  // break-inside: avoid and reset them to auto, so the browser breaks them at
+  // their children's boundaries instead (children keep their own avoid). PAGE_PX
+  // is a conservative portrait estimate at 96 CSS px/in — Letter/A4 usable
+  // height minus our 0.5in margins — so only clearly-oversized elements are
+  // touched and under-page elements still stay whole. Skipped for decks (slides
+  // are sized to the page) and for fixed-size canvases (frame set, or an author
+  // px-based @page) — runs as before for flowing docs on letter/A4.
+  try {
+    if (!ds && !frame && !(__m && __m.signals && __m.signals.pxPage)) {
+      const PAGE_PX = 1024;
+      // Our print defaults add a real @page margin only when the source has
+      // no @page of its own; computed style can't tell us (it reports screen
+      // media), so read the injected rule directly.
+      const defaults = document.querySelector('style[data-omelette-print-defaults]');
+      const pageInset = /@page\s*\{[^}]*margin/.test(defaults ? defaults.textContent || '' : '');
+      const SEL = 'section,article,figure,table,pre,blockquote,[class~="card" i],[class~="page" i],[class~="sheet" i]';
+      for (const el of document.body.querySelectorAll(SEL)) {
+        if (el instanceof HTMLElement && el.offsetHeight > PAGE_PX) {
+          el.setAttribute('data-om-oversized', '');
+          // Fake-paged docs simulate sheets with over-tall break-after:page
+          // boxes; honoring the break spills half-blank pages and ends a
+          // colored box mid-sheet. Flow them, and (only when we own the page
+          // inset) drop the redundant padding/background via the rule below.
+          const cs = getComputedStyle(el);
+          if (cs.breakAfter === 'page' || cs.pageBreakAfter === 'always') {
+            el.setAttribute('data-om-fakepage', '');
+          }
+        }
+      }
+      const ost = document.createElement('style');
+      ost.textContent = '@media print{' +
+        '[data-om-oversized]{break-inside:auto !important;page-break-inside:auto !important}' +
+        '[data-om-fakepage]{break-after:auto !important;page-break-after:auto !important}' +
+        (pageInset ? '[data-om-fakepage]{padding:0 !important;background:none !important}' : '') +
+        '}';
+      document.head.appendChild(ost);
+    }
+  } catch (e) {}
+  // macOS Preview renders Skia-PDF Luminosity soft-masks as opaque grey boxes;
+  // swap the CSS that triggers them for Preview-safe forms.
+  try {
+    for (const el of document.body.querySelectorAll('*')) {
+      const cs = getComputedStyle(el);
+
+      if (cs.boxShadow !== 'none' && cs.filter === 'none') {
+        const outs = [], kept = [];
+        for (const s of cs.boxShadow.split(/,(?![^(]*[)])/)) {
+          const t = s.trim();
+          const m = t.match(/^(rgba?[(][^)]+[)]) (-?[0-9.]+px) (-?[0-9.]+px) ([0-9.]+px) -?[0-9.]+px$/);
+          if (m && parseFloat(m[4]) > 0) outs.push('drop-shadow(' + m[2] + ' ' + m[3] + ' ' + m[4] + ' ' + m[1] + ')');
+          else kept.push(t);
+        }
+        if (outs.length) {
+          el.style.setProperty('filter', outs.join(' '), 'important');
+          el.style.setProperty('box-shadow', kept.join(', ') || 'none', 'important');
+        }
+      }
+
+      const mask = cs.maskImage && cs.maskImage !== 'none' ? cs.maskImage : cs.webkitMaskImage;
+      if (mask && mask !== 'none' && cs.filter === 'none') el.style.setProperty('filter', 'opacity(1)', 'important');
+    }
+  } catch (e) {}
+  setTimeout(() => { try { window.print(); } catch (e) {} }, 200);
+})();
+</script>
+</body>
+</html>
