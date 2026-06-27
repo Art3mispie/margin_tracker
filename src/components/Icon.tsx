@@ -25,6 +25,7 @@ export type IconName =
   | 'bookmark'
   | 'download'
   | 'calendar'
+  | 'star'
   | 'home';
 
 interface Props {
@@ -147,6 +148,14 @@ export default function Icon({ name, size = 22, color = '#000', strokeWidth = 1.
           <Rect x={3} y={4.5} width={18} height={16} rx={2.5} {...s} />
           <Path d="M3 9h18M8 2.5v4M16 2.5v4" {...s} />
         </>
+      );
+    case 'star':
+      return svg(
+        <Path
+          d="M12 2.5l2.9 5.9 6.5.95-4.7 4.58 1.1 6.47L12 17.4l-5.8 3 1.1-6.47-4.7-4.58 6.5-.95z"
+          {...s}
+          fill={color}
+        />
       );
     case 'home':
       return svg(

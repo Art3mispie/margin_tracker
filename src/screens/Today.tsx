@@ -55,15 +55,28 @@ export default function Today() {
 
   // Today's focus = checklist items flagged for today, across all ideas.
   const todayFocus: Array<{ ideaId: number; idx: number; text: string; done: boolean; ideaTitle: string }> = [];
-  const suggested: Array<{ ideaId: number; idx: number; text: string; ideaTitle: string }> = [];
+  const suggested: Array<{ ideaId: number; idx: number; text: string; ideaTitle: string; score: number }> = [];
   sorted.forEach(i => {
+    const di = i.due ? ctx.dueInfo(i.due) : null;
+    // Lower score = surfaced first: overdue/due-soon win, flagged gets a boost,
+    // everything else falls back to plain recency (sorted is newest-first).
+    let score = 600;
+    if (di && di.overdue) score = 0 + di.diff; // most overdue first
+    else if (di && di.diff <= 7) score = 100 + di.diff;
+    else if (di) score = 300;
+    if (i.important) score -= 200;
     i.checklist.forEach((c, idx) => {
       const ideaTitle = i.title || 'Untitled idea';
       if (c.today) todayFocus.push({ ideaId: i.id, idx, text: c.text, done: c.done, ideaTitle });
-      else if (!c.done) suggested.push({ ideaId: i.id, idx, text: c.text, ideaTitle });
+      else if (!c.done) suggested.push({ ideaId: i.id, idx, text: c.text, ideaTitle, score });
     });
   });
-  const suggestedTasks = suggested.slice(0, 4);
+  // Stable sort keeps recency order within equal priority.
+  const suggestedTasks = suggested
+    .map((s, i) => ({ s, i }))
+    .sort((a, b) => a.s.score - b.s.score || a.i - b.i)
+    .slice(0, 4)
+    .map(x => x.s);
   const todayDone = todayFocus.filter(x => x.done).length;
   const todayFocusLabel = todayFocus.length ? `${todayDone} of ${todayFocus.length} done` : '';
 
@@ -76,6 +89,7 @@ export default function Today() {
     .slice(0, 4);
 
   const totalLabel = `${ctx.active().length} ideas captured`;
+  const important = sorted.filter(i => i.important).slice(0, 4);
   const recent = sorted.slice(0, 5);
 
   return (
@@ -161,6 +175,7 @@ export default function Today() {
                 line={theme.line}
                 size={21}
                 successOnCheck
+                label={ft.text}
               />
               <View style={{ flex: 1 }}>
                 <Text
@@ -281,6 +296,28 @@ export default function Today() {
             <Text style={[styles.legendText, { fontFamily: ui(), color: theme.inkFaint }]}>More</Text>
           </View>
         </Card>
+
+        {/* Flagged as important */}
+        {important.length > 0 && (
+          <>
+            <View style={styles.recentHeader}>
+              <View style={styles.flaggedTitleRow}>
+                <Icon name="star" size={16} color="#C8902B" strokeWidth={1.7} />
+                <Text style={[styles.recentTitle, { fontFamily: disp(tk), color: theme.ink }]}>Flagged</Text>
+              </View>
+            </View>
+            <View style={{ marginTop: 12 }}>
+              {important.map(idea => (
+                <IdeaCard
+                  key={idea.id}
+                  idea={idea}
+                  onPress={() => ctx.openReader(idea.id)}
+                  onArchive={() => ctx.archiveIdea(idea.id)}
+                />
+              ))}
+            </View>
+          </>
+        )}
 
         {/* Recent */}
         <View style={styles.recentHeader}>
@@ -490,5 +527,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   recentTitle: { fontSize: 19 },
+  flaggedTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   allLink: { fontSize: 13 },
 });

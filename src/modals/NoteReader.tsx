@@ -29,13 +29,15 @@ export default function NoteReader() {
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: theme.bg }]}>
       <View style={[styles.toolbar, { paddingTop: insets.top + 6 }]}>
-        <TouchableOpacity style={styles.backBtn} onPress={ctx.closeReader} hitSlop={6}>
+        <TouchableOpacity style={styles.backBtn} onPress={ctx.closeReader} hitSlop={6} accessibilityRole="button" accessibilityLabel="Back">
           <Icon name="chevronLeft" size={18} color={theme.inkSoft} strokeWidth={1.9} />
           <Text style={[styles.backText, { fontFamily: ui(600), color: theme.inkSoft }]}>Back</Text>
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.editBtn, { borderColor: theme.line, backgroundColor: theme.surface }]}
           onPress={ctx.editFromReader}
+          accessibilityRole="button"
+          accessibilityLabel="Edit idea"
         >
           <Icon name="pencil" size={15} color={theme.accent} strokeWidth={1.8} />
           <Text style={[styles.editText, { fontFamily: ui(600), color: theme.ink }]}>Edit</Text>
@@ -47,11 +49,25 @@ export default function NoteReader() {
         contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { fontFamily: disp(tk), color: theme.ink }]}>
-          {idea.title || 'Untitled idea'}
-        </Text>
+        <TouchableOpacity
+          activeOpacity={0.6}
+          onPress={ctx.editFromReader}
+          accessibilityRole="button"
+          accessibilityLabel={`Edit title: ${idea.title || 'Untitled idea'}`}
+          accessibilityHint="Opens the editor"
+        >
+          <Text style={[styles.title, { fontFamily: disp(tk), color: theme.ink }]}>
+            {idea.title || 'Untitled idea'}
+          </Text>
+        </TouchableOpacity>
 
         <View style={styles.metaRow}>
+          {idea.important && (
+            <View style={[styles.metaChip, { backgroundColor: 'rgba(200,144,43,0.14)' }]}>
+              <Icon name="star" size={12} color="#C8902B" strokeWidth={1.8} />
+              <Text style={[styles.metaChipText, { fontFamily: ui(600), color: '#A9761F' }]}>Important</Text>
+            </View>
+          )}
           <Text style={[styles.metaDate, { fontFamily: ui(), color: theme.inkFaint }]}>{dateLabel}</Text>
           {!!idea.project && (
             <View style={[styles.metaChip, { backgroundColor: theme.accentSoft }]}>
@@ -79,8 +95,27 @@ export default function NoteReader() {
           </View>
         )}
 
-        {!!idea.body.trim() && (
-          <Text style={[styles.body, { fontFamily: ui(), color: theme.inkSoft }]}>{idea.body}</Text>
+        {!!idea.body.trim() ? (
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={ctx.editFromReader}
+            accessibilityRole="button"
+            accessibilityLabel="Edit note body"
+            accessibilityHint="Opens the editor"
+          >
+            <Text style={[styles.body, { fontFamily: ui(), color: theme.inkSoft }]}>{idea.body}</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            activeOpacity={0.6}
+            onPress={ctx.editFromReader}
+            accessibilityRole="button"
+            accessibilityLabel="Add notes"
+          >
+            <Text style={[styles.body, styles.bodyEmpty, { fontFamily: ui(), color: theme.inkFaint }]}>
+              Tap to add notes…
+            </Text>
+          </TouchableOpacity>
         )}
 
         {hasChecklist && (
@@ -99,6 +134,7 @@ export default function NoteReader() {
                     line={theme.line}
                     size={21}
                     successOnCheck
+                    label={item.text}
                   />
                   <Text
                     style={[
@@ -187,6 +223,7 @@ const styles = StyleSheet.create({
   tagChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
   tagText: { fontSize: 12.5 },
   body: { fontSize: 16, lineHeight: 26, marginTop: 18 },
+  bodyEmpty: { fontStyle: 'italic' },
   sectionTitle: { fontSize: 16, marginBottom: 8 },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 12, paddingHorizontal: 14 },
   checkText: { flex: 1, fontSize: 14.5, lineHeight: 20 },

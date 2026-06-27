@@ -208,6 +208,7 @@ export default function CalendarScreen() {
                   line={theme.line}
                   size={20}
                   successOnCheck
+                  label={task.text}
                 />
                 <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.7} onPress={() => ctx.openReader(idea.id)}>
                   <Text style={[styles.taskText, { fontFamily: ui(), color: theme.ink }]} numberOfLines={2}>

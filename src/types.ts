@@ -22,6 +22,7 @@ export interface Idea {
   project: string | null;
   due: number | null;
   archived: boolean;
+  important: boolean;
   checklist: ChecklistItem[];
   links: Link[];
   sketches: string[];

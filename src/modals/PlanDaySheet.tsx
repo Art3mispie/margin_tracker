@@ -106,6 +106,7 @@ export default function PlanDaySheet() {
           contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: insets.bottom + 26 }}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           {groups.map(g => (
             <View key={g.label} style={{ marginTop: 14 }}>

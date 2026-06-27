@@ -13,6 +13,8 @@ interface Props {
   size?: number;
   /** Fire a success rumble (rather than a plain tap) when it becomes checked. */
   successOnCheck?: boolean;
+  /** Spoken label for screen readers (e.g. the task text). */
+  label?: string;
 }
 
 /**
@@ -26,6 +28,7 @@ export default function Checkbox({
   line,
   size = 22,
   successOnCheck = false,
+  label,
 }: Props) {
   const fill = useRef(new Animated.Value(checked ? 1 : 0)).current;
   const press = useRef(new Animated.Value(1)).current;
@@ -63,7 +66,13 @@ export default function Checkbox({
   const radius = Math.round(size * 0.32);
 
   return (
-    <Pressable onPress={handlePress} hitSlop={10}>
+    <Pressable
+      onPress={handlePress}
+      hitSlop={10}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked }}
+      accessibilityLabel={label}
+    >
       <Animated.View
         style={[
           styles.box,

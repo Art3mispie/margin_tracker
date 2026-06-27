@@ -18,11 +18,37 @@ import Card from '../components/Card';
 import { hapticSelect } from '../haptics';
 import { playSound } from '../sound';
 import { ensureNotificationPermission } from '../notifications';
-import type { ThemeKey } from '../types';
+import type { Theme, ThemeKey } from '../types';
 
 const THEME_ORDER: ThemeKey[] = ['paper', 'cool', 'mono'];
 const MORNING_TIMES = ['06:30', '07:00', '08:00', '09:00'];
 const EVENING_TIMES = ['18:00', '20:00', '21:00', '22:00'];
+
+// Defined at module scope (not inside Settings) so the Switches keep their
+// identity across re-renders instead of remounting on every toggle.
+function SectionLabel({ theme, children }: { theme: Theme; children: string }) {
+  return <Text style={[styles.sectionLabel, { fontFamily: ui(600), color: theme.inkFaint }]}>{children}</Text>;
+}
+
+function Toggle({
+  theme,
+  value,
+  onValueChange,
+}: {
+  theme: Theme;
+  value: boolean;
+  onValueChange: (v: boolean) => void;
+}) {
+  return (
+    <Switch
+      value={value}
+      onValueChange={onValueChange}
+      trackColor={{ true: theme.accent, false: theme.line }}
+      thumbColor="#fff"
+      ios_backgroundColor={theme.line}
+    />
+  );
+}
 
 export default function Settings() {
   const ctx = useContext(AppContext);
@@ -75,20 +101,6 @@ export default function Settings() {
     }
   };
 
-  const SectionLabel = ({ children }: { children: string }) => (
-    <Text style={[styles.sectionLabel, { fontFamily: ui(600), color: theme.inkFaint }]}>{children}</Text>
-  );
-
-  const Toggle = ({ value, onValueChange }: { value: boolean; onValueChange: (v: boolean) => void }) => (
-    <Switch
-      value={value}
-      onValueChange={onValueChange}
-      trackColor={{ true: theme.accent, false: theme.line }}
-      thumbColor="#fff"
-      ios_backgroundColor={theme.line}
-    />
-  );
-
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <ScrollView
@@ -99,7 +111,7 @@ export default function Settings() {
 
         {/* Appearance */}
         <View style={styles.section}>
-          <SectionLabel>APPEARANCE</SectionLabel>
+          <SectionLabel theme={theme}>APPEARANCE</SectionLabel>
           <Card radius={18} clip>
             {THEME_ORDER.map((key, idx) => {
               const t = themes[key];
@@ -131,7 +143,7 @@ export default function Settings() {
 
         {/* Notifications */}
         <View style={styles.section}>
-          <SectionLabel>NOTIFICATIONS</SectionLabel>
+          <SectionLabel theme={theme}>NOTIFICATIONS</SectionLabel>
           <Card radius={18} clip>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -140,7 +152,7 @@ export default function Settings() {
                   Pick the tasks you'll focus on today
                 </Text>
               </View>
-              <Toggle value={state.notifMorning} onValueChange={v => toggleNotif(v, ctx.toggleNotifMorning)} />
+              <Toggle theme={theme} value={state.notifMorning} onValueChange={v => { hapticSelect(); toggleNotif(v, ctx.toggleNotifMorning); }} />
             </View>
             {state.notifMorning && (
               <TouchableOpacity
@@ -163,7 +175,7 @@ export default function Settings() {
                   Check off what you finished today
                 </Text>
               </View>
-              <Toggle value={state.notifEvening} onValueChange={v => toggleNotif(v, ctx.toggleNotifEvening)} />
+              <Toggle theme={theme} value={state.notifEvening} onValueChange={v => { hapticSelect(); toggleNotif(v, ctx.toggleNotifEvening); }} />
             </View>
             {state.notifEvening && (
               <TouchableOpacity
@@ -184,14 +196,14 @@ export default function Settings() {
                 <Text style={[styles.rowTitle, { fontFamily: ui(500), color: theme.ink }]}>Due date reminders</Text>
                 <Text style={[styles.rowDesc, { fontFamily: ui(), color: theme.inkFaint }]}>Morning of the due date</Text>
               </View>
-              <Toggle value={state.notifDue} onValueChange={v => toggleNotif(v, ctx.toggleNotifDue)} />
+              <Toggle theme={theme} value={state.notifDue} onValueChange={v => { hapticSelect(); toggleNotif(v, ctx.toggleNotifDue); }} />
             </View>
           </Card>
         </View>
 
         {/* Feedback & motion (device features beyond the web mockup) */}
         <View style={styles.section}>
-          <SectionLabel>FEEDBACK &amp; MOTION</SectionLabel>
+          <SectionLabel theme={theme}>FEEDBACK &amp; MOTION</SectionLabel>
           <Card radius={18} clip>
             <View style={styles.row}>
               <View style={{ flex: 1 }}>
@@ -200,7 +212,7 @@ export default function Settings() {
                   Subtle taps as you check things off
                 </Text>
               </View>
-              <Toggle value={state.haptics} onValueChange={() => { hapticSelect(); ctx.toggleHaptics(); }} />
+              <Toggle theme={theme} value={state.haptics} onValueChange={() => { hapticSelect(); ctx.toggleHaptics(); }} />
             </View>
             <View style={[styles.row, { borderTopColor: theme.line, borderTopWidth: 1 }]}>
               <View style={{ flex: 1 }}>
@@ -209,7 +221,7 @@ export default function Settings() {
                   Gentle motion when things change
                 </Text>
               </View>
-              <Toggle value={state.animations} onValueChange={ctx.toggleAnimations} />
+              <Toggle theme={theme} value={state.animations} onValueChange={() => { hapticSelect(); ctx.toggleAnimations(); }} />
             </View>
             <View style={[styles.row, { borderTopColor: theme.line, borderTopWidth: 1 }]}>
               <View style={{ flex: 1 }}>
@@ -219,8 +231,9 @@ export default function Settings() {
                 </Text>
               </View>
               <Toggle
+                theme={theme}
                 value={state.sound}
-                onValueChange={v => { ctx.toggleSound(); if (v) setTimeout(() => playSound('complete'), 60); }}
+                onValueChange={v => { hapticSelect(); ctx.toggleSound(); if (v) setTimeout(() => playSound('complete'), 60); }}
               />
             </View>
           </Card>
@@ -228,7 +241,7 @@ export default function Settings() {
 
         {/* Data */}
         <View style={styles.section}>
-          <SectionLabel>DATA</SectionLabel>
+          <SectionLabel theme={theme}>DATA</SectionLabel>
           <Card radius={18} clip>
             <TouchableOpacity style={styles.actionRow} activeOpacity={0.7} onPress={exportIdeas}>
               <Icon name="download" size={18} color={theme.accent} strokeWidth={1.7} />

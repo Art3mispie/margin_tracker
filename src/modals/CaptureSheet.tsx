@@ -17,7 +17,7 @@ import { AppContext } from '../AppContext';
 import { useTheme } from '../theme';
 import { disp, ui } from '../fonts';
 import Icon from '../components/Icon';
-import { hapticTap } from '../haptics';
+import { hapticTap, hapticSuccess } from '../haptics';
 import { playSound } from '../sound';
 
 const { height: SCREEN_H } = Dimensions.get('window');
@@ -53,12 +53,13 @@ export default function CaptureSheet() {
 
   const panResponder = useRef(
     PanResponder.create({
-      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 8,
+      onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 6,
       onPanResponderMove: (_, gs) => {
-        if (gs.dy > 0) translateY.setValue(gs.dy);
+        // Allow a little upward give so the swipe-up gesture feels alive.
+        translateY.setValue(gs.dy > 0 ? gs.dy : Math.max(-60, gs.dy));
       },
       onPanResponderRelease: (_, gs) => {
-        if (gs.dy < -60) ctx.expandQuick();
+        if (gs.dy < -40 || gs.vy < -0.5) { hapticTap(); ctx.expandQuick(); }
         else if (gs.dy > 80) ctx.closeCapture();
         else Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
       },
@@ -76,7 +77,8 @@ export default function CaptureSheet() {
   };
 
   const handleSave = () => {
-    if (hasText) { hapticTap(); playSound('save'); }
+    // A firmer success cue (one clean chime) makes saving feel rewarding.
+    if (hasText) { hapticSuccess(); playSound('save'); }
     ctx.saveCapture();
   };
 
@@ -95,15 +97,23 @@ export default function CaptureSheet() {
             { backgroundColor: theme.bg, paddingBottom: insets.bottom + 16, transform: [{ translateY }] },
           ]}
         >
-          <View style={styles.handleArea} {...panResponder.panHandlers}>
-            <View style={[styles.handle, { backgroundColor: theme.line }]} />
-          </View>
+          {/* The handle + header double as a generous grab zone for swipe-up. */}
+          <View {...panResponder.panHandlers}>
+            <View style={styles.handleArea}>
+              <View style={[styles.handle, { backgroundColor: theme.line }]} />
+            </View>
 
-          <View style={styles.header}>
-            <Text style={[styles.headerTitle, { fontFamily: disp(tk), color: theme.ink }]}>Quick capture</Text>
-            <TouchableOpacity onPress={ctx.closeCapture} hitSlop={8}>
-              <Text style={[styles.cancel, { fontFamily: ui(), color: theme.inkFaint }]}>Cancel</Text>
-            </TouchableOpacity>
+            <View style={styles.header}>
+              <Text style={[styles.headerTitle, { fontFamily: disp(tk), color: theme.ink }]}>Quick capture</Text>
+              <TouchableOpacity
+                onPress={ctx.closeCapture}
+                hitSlop={8}
+                accessibilityRole="button"
+                accessibilityLabel="Cancel capture"
+              >
+                <Text style={[styles.cancel, { fontFamily: ui(), color: theme.inkFaint }]}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TextInput
@@ -157,14 +167,22 @@ export default function CaptureSheet() {
             onPress={handleSave}
             disabled={!hasText}
             activeOpacity={0.9}
+            accessibilityRole="button"
+            accessibilityLabel="Save idea"
+            accessibilityState={{ disabled: !hasText }}
           >
             <Text style={[styles.saveText, { fontFamily: ui(600) }]}>Save idea</Text>
           </TouchableOpacity>
 
-          <View style={styles.hint}>
+          <TouchableOpacity
+            style={styles.hint}
+            onPress={() => { hapticTap(); ctx.expandQuick(); }}
+            accessibilityRole="button"
+            accessibilityLabel="Open the full editor"
+          >
             <Icon name="chevronUp" size={13} color={theme.inkFaint} strokeWidth={2} />
             <Text style={[styles.hintText, { fontFamily: ui(), color: theme.inkFaint }]}>Swipe up for the full editor</Text>
-          </View>
+          </TouchableOpacity>
         </Animated.View>
       </KeyboardAvoidingView>
     </View>

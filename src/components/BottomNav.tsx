@@ -40,6 +40,9 @@ export default function BottomNav() {
             key={tab.key}
             style={styles.tab}
             activeOpacity={0.7}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={tab.label}
             onPress={() => {
               if (screen !== tab.key) hapticSelect();
               ctx.setScreen(tab.key);

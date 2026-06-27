@@ -14,6 +14,7 @@ import { disp, ui } from '../fonts';
 import Icon from '../components/Icon';
 import Card from '../components/Card';
 import IdeaCard from '../components/IdeaCard';
+import { weekGroup } from '../dates';
 import type { Idea } from '../types';
 
 export default function Ideas() {
@@ -102,6 +103,41 @@ export default function Ideas() {
       />
     ));
 
+  // Section label for the grouped "All ideas" list. Recency sorts group by the
+  // week an idea was captured; the due-date sort groups by how soon it's due.
+  const groupLabelFor = (i: Idea): string => {
+    if (state.ideasSort === 'due') {
+      const di = i.due ? ctx.dueInfo(i.due) : null;
+      if (!di) return 'No due date';
+      if (di.overdue) return 'Overdue';
+      if (di.diff <= 7) return 'This week';
+      if (di.diff <= 14) return 'Next week';
+      return 'Later';
+    }
+    return weekGroup(i.createdAt);
+  };
+
+  const renderGrouped = (list: Idea[]) => {
+    const groups: Array<{ label: string; items: Idea[] }> = [];
+    const index: Record<string, number> = {};
+    for (const idea of list) {
+      const label = groupLabelFor(idea);
+      if (index[label] === undefined) {
+        index[label] = groups.length;
+        groups.push({ label, items: [] });
+      }
+      groups[index[label]].items.push(idea);
+    }
+    return groups.map(g => (
+      <View key={g.label} style={{ marginTop: 6 }}>
+        <Text style={[styles.weekLabel, { fontFamily: ui(700), color: theme.inkFaint }]}>
+          {g.label.toUpperCase()}
+        </Text>
+        {renderCards(g.items)}
+      </View>
+    ));
+  };
+
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <ScrollView
@@ -109,6 +145,7 @@ export default function Ideas() {
         contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: 130 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
       >
         {!isBrowsing && (
           <Text style={[styles.title, { fontFamily: disp(tk), color: theme.ink }]}>Ideas</Text>
@@ -228,7 +265,15 @@ export default function Ideas() {
                   )}
                 </ScrollView>
 
-                <View style={{ marginTop: 14 }}>{renderCards(allSorted)}</View>
+                <View style={{ marginTop: 8 }}>
+                  {allSorted.length > 0 ? (
+                    renderGrouped(allSorted)
+                  ) : (
+                    <Text style={[styles.dim, { fontFamily: ui(), color: theme.inkFaint, paddingVertical: 18 }]}>
+                      {state.ideasFilter ? 'No ideas with this tag yet.' : 'No ideas yet — tap + to capture one.'}
+                    </Text>
+                  )}
+                </View>
               </>
             ) : (
               <>
@@ -352,6 +397,8 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   sortText: { fontSize: 13 },
+
+  weekLabel: { fontSize: 11.5, letterSpacing: 0.5, marginTop: 10, marginBottom: 9 },
 
   chipScroll: { marginHorizontal: -22, marginTop: 12 },
   chipScrollContent: { paddingHorizontal: 22, gap: 8 },

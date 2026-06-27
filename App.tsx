@@ -34,6 +34,7 @@ import { hapticTap } from './src/haptics';
 import { loadSounds } from './src/sound';
 import Icon from './src/components/Icon';
 import BottomNav from './src/components/BottomNav';
+import SelectionBar from './src/components/SelectionBar';
 import Today from './src/screens/Today';
 import Ideas from './src/screens/Ideas';
 import CalendarScreen from './src/screens/CalendarScreen';
@@ -82,7 +83,7 @@ function AppShell() {
     }
   };
 
-  const showFAB = state.screen !== 'settings';
+  const showFAB = state.screen !== 'settings' && !state.selectMode;
 
   // Full-screen overlays have light backgrounds; the Today screen has a dark ocean top.
   const overlayOpen =
@@ -101,6 +102,9 @@ function AppShell() {
 
       {/* Bottom Nav */}
       <BottomNav />
+
+      {/* Multi-select action bar (overlays the nav when active) */}
+      <SelectionBar />
 
       {/* FAB */}
       {showFAB && (

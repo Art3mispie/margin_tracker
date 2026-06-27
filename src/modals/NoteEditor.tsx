@@ -1,5 +1,6 @@
 import React, { useContext, useState } from 'react';
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -148,6 +149,36 @@ export default function NoteEditor() {
     ctx.dispatch({ type: 'SET_META_PANEL', panel: state.metaPanel === panel ? null : panel });
   };
 
+  // Remove-an-extra control shown beside each Extras section header.
+  const EXTRA_LABEL = { checklist: 'Checklist', sketch: 'Sketches', links: 'Links' } as const;
+  const RemoveExtra = ({ kind }: { kind: 'checklist' | 'sketch' | 'links' }) => {
+    const hasData =
+      (kind === 'checklist' && idea.checklist.length > 0) ||
+      (kind === 'sketch' && idea.sketches.length > 0) ||
+      (kind === 'links' && idea.links.length > 0);
+    const remove = () => { hapticTap(); animateLayout(); ctx.removeExtra(idea.id, kind); };
+    return (
+      <TouchableOpacity
+        onPress={() => {
+          if (hasData) {
+            Alert.alert(`Remove ${EXTRA_LABEL[kind]}?`, 'This clears its contents from the note.', [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'Remove', style: 'destructive', onPress: remove },
+            ]);
+          } else {
+            remove();
+          }
+        }}
+        hitSlop={8}
+        style={styles.removeExtraBtn}
+        accessibilityRole="button"
+        accessibilityLabel={`Remove ${EXTRA_LABEL[kind]} section`}
+      >
+        <Text style={[styles.removeExtraText, { fontFamily: ui(600), color: theme.inkFaint }]}>Remove</Text>
+      </TouchableOpacity>
+    );
+  };
+
   const dueChipColor = di ? (di.overdue ? '#C0492F' : theme.accentInk) : theme.inkSoft;
   const dueChipBg = di ? (di.overdue ? 'rgba(192,73,47,0.1)' : theme.accentSoft) : theme.surface;
   const dueChipBorder = di && di.overdue ? 'rgba(192,73,47,0.3)' : theme.line;
@@ -167,6 +198,8 @@ export default function NoteEditor() {
               onPress={() => ctx.dispatch({ type: 'SET_NOTE_MENU', open: !state.noteMenuOpen })}
               hitSlop={6}
               style={{ padding: 6 }}
+              accessibilityRole="button"
+              accessibilityLabel="More actions"
             >
               <Icon name="dots" size={20} color={theme.inkSoft} />
             </TouchableOpacity>
@@ -175,9 +208,10 @@ export default function NoteEditor() {
 
         <ScrollView
           style={{ flex: 1 }}
-          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 120 }]}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           <TextInput
             style={[styles.titleInput, { fontFamily: disp(tk), color: theme.ink }]}
@@ -329,11 +363,14 @@ export default function NoteEditor() {
                 <View style={{ marginTop: 14 }}>
                   <View style={styles.extraHead}>
                     <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Checklist</Text>
-                    <Text style={[styles.dim, { fontFamily: ui(), color: theme.inkFaint }]}>
-                      {idea.checklist.length
-                        ? `${idea.checklist.filter(c => c.done).length} of ${idea.checklist.length} done`
-                        : 'Nothing yet'}
-                    </Text>
+                    <View style={styles.extraHeadRight}>
+                      <Text style={[styles.dim, { fontFamily: ui(), color: theme.inkFaint }]}>
+                        {idea.checklist.length
+                          ? `${idea.checklist.filter(c => c.done).length} of ${idea.checklist.length} done`
+                          : 'Nothing yet'}
+                      </Text>
+                      <RemoveExtra kind="checklist" />
+                    </View>
                   </View>
                   {idea.checklist.map((item, idx) => (
                     <View key={idx} style={styles.checkRow}>
@@ -344,6 +381,7 @@ export default function NoteEditor() {
                         line={theme.line}
                         size={21}
                         successOnCheck
+                        label={item.text}
                       />
                       <Text
                         style={[
@@ -382,7 +420,10 @@ export default function NoteEditor() {
 
               {showSketch && (
                 <View style={{ marginTop: 18 }}>
-                  <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Sketches</Text>
+                  <View style={styles.extraHead}>
+                    <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Sketches</Text>
+                    <RemoveExtra kind="sketch" />
+                  </View>
                   <View style={styles.sketchRow}>
                     {idea.sketches.map((uri, idx) => (
                       <TouchableOpacity
@@ -410,7 +451,10 @@ export default function NoteEditor() {
 
               {showLinks && (
                 <View style={{ marginTop: 18 }}>
-                  <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Links</Text>
+                  <View style={styles.extraHead}>
+                    <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Links</Text>
+                    <RemoveExtra kind="links" />
+                  </View>
                   <View style={{ marginTop: 9, gap: 7 }}>
                     {idea.links.map((link, idx) => (
                       <Card key={idx} radius={12} style={styles.linkRow}>
@@ -462,6 +506,19 @@ export default function NoteEditor() {
               onPress={() => ctx.dispatch({ type: 'SET_NOTE_MENU', open: false })}
             />
             <View style={[styles.noteMenu, { top: insets.top + 44, backgroundColor: theme.surface, borderColor: theme.line }]}>
+              <TouchableOpacity
+                style={styles.noteMenuItem}
+                onPress={() => {
+                  hapticTap();
+                  ctx.dispatch({ type: 'SET_NOTE_MENU', open: false });
+                  ctx.toggleImportant(idea.id);
+                }}
+              >
+                <Icon name="star" size={16} color={idea.important ? '#C8902B' : theme.inkSoft} strokeWidth={1.7} />
+                <Text style={[styles.noteMenuText, { fontFamily: ui(), color: theme.ink }]}>
+                  {idea.important ? 'Remove flag' : 'Flag as important'}
+                </Text>
+              </TouchableOpacity>
               <TouchableOpacity
                 style={styles.noteMenuItem}
                 onPress={() => {
@@ -528,7 +585,10 @@ const styles = StyleSheet.create({
 
   extras: { marginTop: 8, borderTopWidth: 1, paddingTop: 18 },
   extrasLabel: { fontSize: 11.5, letterSpacing: 0.5 },
-  extraHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  extraHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  extraHeadRight: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  removeExtraBtn: { paddingVertical: 2, paddingHorizontal: 4 },
+  removeExtraText: { fontSize: 12.5 },
   extraTitle: { fontSize: 16 },
   dim: { fontSize: 12 },
   checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 9 },

@@ -66,6 +66,8 @@ export interface AppState {
   newProjectText: string;
   calRef: number;
   selectedDay: string;
+  selectMode: boolean;
+  selectedIds: number[];
   notifMorning: boolean;
   notifMorningTime: string;
   notifEvening: boolean;
@@ -104,6 +106,8 @@ const initialState: AppState = {
   newProjectText: '',
   calRef: Date.now(),
   selectedDay: `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`,
+  selectMode: false,
+  selectedIds: [],
   notifMorning: false,
   notifMorningTime: '08:00',
   notifEvening: false,
@@ -167,7 +171,15 @@ type Action =
   | { type: 'TOGGLE_HAPTICS' }
   | { type: 'TOGGLE_ANIMATIONS' }
   | { type: 'TOGGLE_SOUND' }
-  | { type: 'CLEAR_ARCHIVE' };
+  | { type: 'CLEAR_ARCHIVE' }
+  | { type: 'TOGGLE_IMPORTANT'; id: number }
+  | { type: 'REMOVE_EXTRA'; id: number; kind: 'checklist' | 'sketch' | 'links' }
+  | { type: 'ENTER_SELECT'; id: number }
+  | { type: 'EXIT_SELECT' }
+  | { type: 'TOGGLE_SELECT'; id: number }
+  | { type: 'BULK_ARCHIVE' }
+  | { type: 'BULK_DELETE' }
+  | { type: 'BULK_IMPORTANT'; important: boolean };
 
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
@@ -401,6 +413,68 @@ function reducer(state: AppState, action: Action): AppState {
     case 'CLEAR_ARCHIVE':
       return { ...state, ideas: state.ideas.filter(i => !i.archived) };
 
+    case 'TOGGLE_IMPORTANT':
+      return {
+        ...state,
+        ideas: state.ideas.map(i =>
+          i.id === action.id ? { ...i, important: !i.important } : i
+        ),
+      };
+    case 'REMOVE_EXTRA': {
+      return {
+        ...state,
+        ideas: state.ideas.map(i => {
+          if (i.id !== action.id) return i;
+          const extras = { ...i.extras, [action.kind]: false };
+          if (action.kind === 'checklist') return { ...i, extras, checklist: [] };
+          if (action.kind === 'sketch') return { ...i, extras, sketches: [] };
+          return { ...i, extras, links: [] };
+        }),
+      };
+    }
+
+    case 'ENTER_SELECT':
+      return { ...state, selectMode: true, selectedIds: [action.id] };
+    case 'EXIT_SELECT':
+      return { ...state, selectMode: false, selectedIds: [] };
+    case 'TOGGLE_SELECT': {
+      const has = state.selectedIds.includes(action.id);
+      const selectedIds = has
+        ? state.selectedIds.filter(id => id !== action.id)
+        : [...state.selectedIds, action.id];
+      // Leaving nothing selected drops back out of selection mode.
+      return { ...state, selectedIds, selectMode: selectedIds.length > 0 };
+    }
+    case 'BULK_ARCHIVE': {
+      const sel = new Set(state.selectedIds);
+      return {
+        ...state,
+        ideas: state.ideas.map(i => (sel.has(i.id) ? { ...i, archived: true } : i)),
+        selectMode: false,
+        selectedIds: [],
+      };
+    }
+    case 'BULK_DELETE': {
+      const sel = new Set(state.selectedIds);
+      return {
+        ...state,
+        ideas: state.ideas.filter(i => !sel.has(i.id)),
+        selectMode: false,
+        selectedIds: [],
+      };
+    }
+    case 'BULK_IMPORTANT': {
+      const sel = new Set(state.selectedIds);
+      return {
+        ...state,
+        ideas: state.ideas.map(i =>
+          sel.has(i.id) ? { ...i, important: action.important } : i
+        ),
+        selectMode: false,
+        selectedIds: [],
+      };
+    }
+
     default:
       return state;
   }
@@ -478,7 +552,15 @@ export interface AppContextValue {
   removeLink: (ideaId: number, idx: number) => void;
   addSketch: (ideaId: number, uri: string) => void;
   removeSketch: (ideaId: number, idx: number) => void;
+  removeExtra: (ideaId: number, kind: 'checklist' | 'sketch' | 'links') => void;
   clearArchive: () => void;
+  toggleImportant: (id: number) => void;
+  enterSelect: (id: number) => void;
+  exitSelect: () => void;
+  toggleSelect: (id: number) => void;
+  bulkArchive: () => void;
+  bulkDelete: () => void;
+  bulkImportant: (important: boolean) => void;
 }
 
 export const AppContext = createContext<AppContextValue>({} as AppContextValue);
@@ -519,6 +601,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               links: i.links ?? [],
               sketches: i.sketches ?? [],
               extras: i.extras ?? {},
+              important: i.important ?? false,
             }));
             const maxId = data.ideas.reduce((m, i) => Math.max(m, i.id), 0);
             if (maxId >= _nextId) _nextId = maxId + 1;
@@ -664,6 +747,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       project: null,
       due: null,
       archived: false,
+      important: false,
       checklist: [],
       links: [],
       sketches: [],
@@ -674,11 +758,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, [state.captureText, state.captureTags]);
 
   const expandQuick = useCallback(() => {
+    // Swipe-up always lands you in the full editor — even with nothing typed yet.
+    // An untouched note is discarded automatically when the editor closes.
     const text = state.captureText.trim();
-    if (!text) {
-      dispatch({ type: 'CLOSE_CAPTURE' });
-      return;
-    }
     const idea: Idea = {
       id: nextId(),
       title: text,
@@ -687,6 +769,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       project: null,
       due: null,
       archived: false,
+      important: false,
       checklist: [],
       links: [],
       sketches: [],
@@ -838,6 +921,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         project: name,
         due: null,
         archived: false,
+        important: false,
         checklist: [],
         links: [],
         sketches: [],
@@ -995,7 +1079,28 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.ideas]
   );
 
+  const removeExtra = useCallback(
+    (ideaId: number, kind: 'checklist' | 'sketch' | 'links') =>
+      dispatch({ type: 'REMOVE_EXTRA', id: ideaId, kind }),
+    []
+  );
+
   const clearArchive = useCallback(() => dispatch({ type: 'CLEAR_ARCHIVE' }), []);
+
+  const toggleImportant = useCallback(
+    (id: number) => dispatch({ type: 'TOGGLE_IMPORTANT', id }),
+    []
+  );
+
+  const enterSelect = useCallback((id: number) => dispatch({ type: 'ENTER_SELECT', id }), []);
+  const exitSelect = useCallback(() => dispatch({ type: 'EXIT_SELECT' }), []);
+  const toggleSelect = useCallback((id: number) => dispatch({ type: 'TOGGLE_SELECT', id }), []);
+  const bulkArchive = useCallback(() => dispatch({ type: 'BULK_ARCHIVE' }), []);
+  const bulkDelete = useCallback(() => dispatch({ type: 'BULK_DELETE' }), []);
+  const bulkImportant = useCallback(
+    (important: boolean) => dispatch({ type: 'BULK_IMPORTANT', important }),
+    []
+  );
 
   const value: AppContextValue = {
     state,
@@ -1062,7 +1167,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     removeLink,
     addSketch,
     removeSketch,
+    removeExtra,
     clearArchive,
+    toggleImportant,
+    enterSelect,
+    exitSelect,
+    toggleSelect,
+    bulkArchive,
+    bulkDelete,
+    bulkImportant,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

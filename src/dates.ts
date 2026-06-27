@@ -22,6 +22,33 @@ export function fmtFull(ts: number): string {
   });
 }
 
+// Start-of-week (Sunday) for a given timestamp, normalised to midnight.
+function startOfWeek(ts: number): number {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay());
+  return d.getTime();
+}
+
+/**
+ * A coarse, human "which week" bucket label for grouping a list by recency.
+ * Anything older than a month collapses into its calendar month so the list
+ * doesn't sprout an endless run of "5 weeks ago" headers.
+ */
+export function weekGroup(ts: number): string {
+  const weekMs = 7 * 86400000;
+  const diff = Math.round((startOfWeek(Date.now()) - startOfWeek(ts)) / weekMs);
+  if (diff <= 0) return 'This week';
+  if (diff === 1) return 'Last week';
+  if (diff <= 4) return `${diff} weeks ago`;
+  const d = new Date(ts);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  return d.toLocaleDateString('en-US', {
+    month: 'long',
+    ...(sameYear ? {} : { year: 'numeric' }),
+  });
+}
+
 export function dueInfo(
   ts: number
 ): { label: string; overdue: boolean; diff: number } | null {
