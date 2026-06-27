@@ -51,6 +51,13 @@ export default function CaptureSheet() {
     }
   }, [state.captureOpen]);
 
+  // The PanResponder is built once; keep refs to the handlers so the gesture
+  // always runs the latest version (expandQuick closes over the typed text).
+  const expandRef = useRef(ctx.expandQuick);
+  expandRef.current = ctx.expandQuick;
+  const closeRef = useRef(ctx.closeCapture);
+  closeRef.current = ctx.closeCapture;
+
   const panResponder = useRef(
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 6,
@@ -59,8 +66,8 @@ export default function CaptureSheet() {
         translateY.setValue(gs.dy > 0 ? gs.dy : Math.max(-60, gs.dy));
       },
       onPanResponderRelease: (_, gs) => {
-        if (gs.dy < -40 || gs.vy < -0.5) { hapticTap(); ctx.expandQuick(); }
-        else if (gs.dy > 80) ctx.closeCapture();
+        if (gs.dy < -40 || gs.vy < -0.5) { hapticTap(); expandRef.current(); }
+        else if (gs.dy > 80) closeRef.current();
         else Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
       },
     })

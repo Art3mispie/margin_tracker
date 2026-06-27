@@ -39,6 +39,8 @@ export default function IdeaCard({ idea, onPress, onArchive, titleSize = 16.5 }:
   // The PanResponder is created once, so mirror live values it needs into refs.
   const selectModeRef = useRef(selectMode);
   selectModeRef.current = selectMode;
+  const archivedRef = useRef(idea.archived);
+  archivedRef.current = idea.archived;
 
   const springBack = () =>
     Animated.spring(translateX, { toValue: 0, friction: 7, tension: 90, useNativeDriver: true }).start();
@@ -51,23 +53,29 @@ export default function IdeaCard({ idea, onPress, onArchive, titleSize = 16.5 }:
         Math.abs(gs.dx) > 10 &&
         Math.abs(gs.dx) > Math.abs(gs.dy) * 1.2,
       onPanResponderMove: (_, gs) => {
-        // Archive pulls fully left; flag only needs a short pull right.
+        // The full-pull action pulls left; flag only needs a short pull right.
         const x = gs.dx < 0 ? Math.max(-200, gs.dx) : Math.min(140, gs.dx);
         translateX.setValue(x);
       },
       onPanResponderRelease: (_, gs) => {
         if (settling.current) return;
         if (gs.dx < -100) {
-          // Archive — slide the card off, then collapse the row.
+          // Left: archive an active note, or restore one from the archive.
+          // Either way the card slides off and the row collapses behind it.
           settling.current = true;
-          hapticSuccess();
-          playSound('archive');
+          if (archivedRef.current) {
+            hapticTap();
+          } else {
+            hapticSuccess();
+            playSound('archive');
+          }
           Animated.timing(translateX, { toValue: -480, duration: 190, useNativeDriver: true }).start(() => {
             animateLayout();
-            onArchive();
+            if (archivedRef.current) ctx.patch(idea.id, { archived: false });
+            else onArchive();
           });
         } else if (gs.dx > 90) {
-          // Flag / unflag as important — a lighter, in-place action.
+          // Right: flag / unflag as important — a lighter, in-place action.
           hapticTap();
           animateLayout();
           ctx.toggleImportant(idea.id);
@@ -122,10 +130,12 @@ export default function IdeaCard({ idea, onPress, onArchive, titleSize = 16.5 }:
         </Text>
       </Animated.View>
 
-      {/* Swipe-left reveal: archive */}
+      {/* Swipe-left reveal: archive (or restore, when already archived) */}
       <Animated.View style={[styles.revealBg, styles.archiveBg, { backgroundColor: theme.accent, opacity: archiveOpacity }]}>
         <Icon name="archive" size={16} color="#fff" strokeWidth={1.8} />
-        <Text style={[styles.revealLabel, { fontFamily: ui(600) }]}>Archive</Text>
+        <Text style={[styles.revealLabel, { fontFamily: ui(600) }]}>
+          {idea.archived ? 'Restore' : 'Archive'}
+        </Text>
       </Animated.View>
 
       <Animated.View

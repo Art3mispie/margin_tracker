@@ -151,7 +151,7 @@ export default function NoteEditor() {
 
   // Remove-an-extra control shown beside each Extras section header.
   const EXTRA_LABEL = { checklist: 'Checklist', sketch: 'Sketches', links: 'Links' } as const;
-  const RemoveExtra = ({ kind }: { kind: 'checklist' | 'sketch' | 'links' }) => {
+  const renderRemoveExtra = (kind: 'checklist' | 'sketch' | 'links') => {
     const hasData =
       (kind === 'checklist' && idea.checklist.length > 0) ||
       (kind === 'sketch' && idea.sketches.length > 0) ||
@@ -369,7 +369,7 @@ export default function NoteEditor() {
                           ? `${idea.checklist.filter(c => c.done).length} of ${idea.checklist.length} done`
                           : 'Nothing yet'}
                       </Text>
-                      <RemoveExtra kind="checklist" />
+                      {renderRemoveExtra('checklist')}
                     </View>
                   </View>
                   {idea.checklist.map((item, idx) => (
@@ -422,7 +422,7 @@ export default function NoteEditor() {
                 <View style={{ marginTop: 18 }}>
                   <View style={styles.extraHead}>
                     <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Sketches</Text>
-                    <RemoveExtra kind="sketch" />
+                    {renderRemoveExtra('sketch')}
                   </View>
                   <View style={styles.sketchRow}>
                     {idea.sketches.map((uri, idx) => (
@@ -453,7 +453,7 @@ export default function NoteEditor() {
                 <View style={{ marginTop: 18 }}>
                   <View style={styles.extraHead}>
                     <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Links</Text>
-                    <RemoveExtra kind="links" />
+                    {renderRemoveExtra('links')}
                   </View>
                   <View style={{ marginTop: 9, gap: 7 }}>
                     {idea.links.map((link, idx) => (

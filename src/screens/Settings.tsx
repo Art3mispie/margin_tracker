@@ -90,6 +90,7 @@ export default function Settings() {
       tags: i.tags,
       project: i.project,
       due: i.due,
+      important: i.important,
       checklist: i.checklist,
       links: i.links,
       createdAt: i.createdAt,

@@ -33,15 +33,26 @@ export default function NoteReader() {
           <Icon name="chevronLeft" size={18} color={theme.inkSoft} strokeWidth={1.9} />
           <Text style={[styles.backText, { fontFamily: ui(600), color: theme.inkSoft }]}>Back</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.editBtn, { borderColor: theme.line, backgroundColor: theme.surface }]}
-          onPress={ctx.editFromReader}
-          accessibilityRole="button"
-          accessibilityLabel="Edit idea"
-        >
-          <Icon name="pencil" size={15} color={theme.accent} strokeWidth={1.8} />
-          <Text style={[styles.editText, { fontFamily: ui(600), color: theme.ink }]}>Edit</Text>
-        </TouchableOpacity>
+        <View style={styles.toolbarRight}>
+          <TouchableOpacity
+            style={[styles.flagBtn, { borderColor: idea.important ? 'rgba(200,144,43,0.45)' : theme.line, backgroundColor: idea.important ? 'rgba(200,144,43,0.14)' : theme.surface }]}
+            onPress={() => { hapticTap(); ctx.toggleImportant(idea.id); }}
+            accessibilityRole="button"
+            accessibilityLabel={idea.important ? 'Remove important flag' : 'Flag as important'}
+            accessibilityState={{ selected: idea.important }}
+          >
+            <Icon name="star" size={16} color={idea.important ? '#C8902B' : theme.inkSoft} strokeWidth={1.8} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.editBtn, { borderColor: theme.line, backgroundColor: theme.surface }]}
+            onPress={ctx.editFromReader}
+            accessibilityRole="button"
+            accessibilityLabel="Edit idea"
+          >
+            <Icon name="pencil" size={15} color={theme.accent} strokeWidth={1.8} />
+            <Text style={[styles.editText, { fontFamily: ui(600), color: theme.ink }]}>Edit</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       <ScrollView
@@ -211,6 +222,8 @@ const styles = StyleSheet.create({
   },
   backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 8 },
   backText: { fontSize: 14 },
+  toolbarRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  flagBtn: { width: 36, height: 36, borderRadius: 11, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 11, paddingHorizontal: 14, paddingVertical: 8 },
   editText: { fontSize: 13.5 },
   content: { paddingHorizontal: 22, paddingTop: 4 },
