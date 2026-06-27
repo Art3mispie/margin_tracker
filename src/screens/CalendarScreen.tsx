@@ -1,244 +1,206 @@
 import React, { useContext } from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { AppContext } from '../AppContext';
 import { useTheme } from '../theme';
-import IdeaCard from '../components/IdeaCard';
+import { disp, ui } from '../fonts';
+import Icon from '../components/Icon';
+import Card from '../components/Card';
 import Checkbox from '../components/Checkbox';
+import IdeaCard from '../components/IdeaCard';
 import { animateLayout } from '../anim';
 import { hapticSelect } from '../haptics';
 
-const DAY_NAMES = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
-const MONTH_NAMES = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-];
+const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 
 export default function CalendarScreen() {
   const ctx = useContext(AppContext);
   const theme = useTheme();
+  const tk = theme.key;
   const insets = useSafeAreaInsets();
   const { state } = ctx;
 
-  const calDate = new Date(state.calRef);
-  const year = calDate.getFullYear();
-  const month = calDate.getMonth();
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-  const today = new Date();
-  const todayStr = `${today.getFullYear()}-${today.getMonth() + 1}-${today.getDate()}`;
-
-  const allActive = ctx.active();
+  const now = new Date();
+  const todayKey = ctx.dayKey(now.getTime());
   const byDay = ctx.byDay();
+  const allActive = ctx.active();
 
-  // Ideas that have due dates this month
-  const dueDays = new Set(
-    allActive
-      .filter(i => {
-        if (!i.due) return false;
-        const d = new Date(i.due);
-        return d.getFullYear() === year && d.getMonth() === month;
-      })
-      .map(i => new Date(i.due!).getDate())
-  );
-
-  // Selected day's ideas (created or due that day)
-  const [selYear, selMonth, selDate] = state.selectedDay.split('-').map(Number);
-  const selIdeas = allActive.filter(i => {
-    const created = new Date(i.createdAt);
-    const createdMatch =
-      created.getFullYear() === selYear &&
-      created.getMonth() + 1 === selMonth &&
-      created.getDate() === selDate;
-    if (createdMatch) return true;
-    if (!i.due) return false;
-    const due = new Date(i.due);
-    return (
-      due.getFullYear() === selYear &&
-      due.getMonth() + 1 === selMonth &&
-      due.getDate() === selDate
-    );
+  const dueByDay: Record<string, number> = {};
+  allActive.forEach(i => {
+    if (i.due) {
+      const k = ctx.dayKey(i.due);
+      dueByDay[k] = (dueByDay[k] || 0) + 1;
+    }
   });
 
-  // Open checklist items — map before filtering so idx is the real checklist index.
+  const cal = new Date(state.calRef);
+  const monthLabel = cal.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const first = new Date(cal.getFullYear(), cal.getMonth(), 1);
+  const gridStart = new Date(first);
+  gridStart.setDate(1 - first.getDay());
+  const lastDay = new Date(cal.getFullYear(), cal.getMonth() + 1, 0).getDate();
+  const cells = first.getDay() + lastDay > 35 ? 42 : 35;
+
+  const calFill = ['transparent', ctx.rgba(0.12), ctx.rgba(0.26), ctx.rgba(0.42), ctx.rgba(0.58)];
+
+  const days = Array.from({ length: cells }, (_, n) => {
+    const day = new Date(gridStart);
+    day.setDate(gridStart.getDate() + n);
+    const inMonth = day.getMonth() === cal.getMonth();
+    const k = ctx.dayKey(day.getTime());
+    const c = byDay[k] || 0;
+    const lvl = c >= 4 ? 4 : c;
+    const isToday = k === todayKey;
+    const selected = k === state.selectedDay;
+    return {
+      key: k,
+      day: day.getDate(),
+      inMonth,
+      fill: inMonth ? calFill[lvl] : 'transparent',
+      color: !inMonth ? theme.inkFaint : lvl >= 3 ? '#fff' : isToday ? theme.accent : theme.ink,
+      weight: (isToday || selected ? 700 : 500) as 500 | 700,
+      ringColor: selected ? theme.accent : isToday ? ctx.rgba(0.5) : 'transparent',
+      ringWidth: selected ? 2 : isToday ? 1.6 : 0,
+      due: (dueByDay[k] || 0) > 0,
+    };
+  });
+
+  const [sy, sm, sd] = state.selectedDay.split('-').map(Number);
+  const selDate = new Date(sy, sm - 1, sd);
+  const selectedLabel =
+    state.selectedDay === todayKey
+      ? 'Today'
+      : selDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
+
+  const dayIdeas = [...allActive]
+    .sort((a, b) => b.createdAt - a.createdAt)
+    .filter(i => ctx.dayKey(i.createdAt) === state.selectedDay || (i.due && ctx.dayKey(i.due) === state.selectedDay));
+
   const openTasks = allActive.flatMap(idea =>
-    idea.checklist
-      .map((c, idx) => ({ idea, task: c, idx }))
-      .filter(x => !x.task.done)
+    idea.checklist.map((c, idx) => ({ idea, task: c, idx })).filter(x => !x.task.done)
   );
-
-  const selectedDayLabel = new Date(selYear, selMonth - 1, selDate).toLocaleDateString('en-US', {
-    weekday: 'long',
-    month: 'long',
-    day: 'numeric',
-  });
-
-  const totalCells = firstDay + daysInMonth;
-  const rows = Math.ceil(totalCells / 7);
-  const totalGridCells = rows * 7;
 
   return (
     <View style={[styles.root, { backgroundColor: theme.bg }]}>
       <ScrollView
         style={styles.scroll}
-        contentContainerStyle={[styles.content, { paddingTop: insets.top + 16 }]}
+        contentContainerStyle={[styles.content, { paddingTop: insets.top + 14, paddingBottom: 130 }]}
         showsVerticalScrollIndicator={false}
       >
-        <Text style={[styles.title, { fontFamily: theme.fdispFamily, color: theme.ink }]}>
-          Calendar
-        </Text>
+        <Text style={[styles.title, { fontFamily: disp(tk), color: theme.ink }]}>Calendar</Text>
 
-        {/* Month calendar card */}
-        <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
-          {/* Nav */}
+        {/* Month grid */}
+        <Card radius={18} style={styles.monthCard}>
           <View style={styles.monthNav}>
-            <TouchableOpacity onPress={ctx.prevMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                <Path d="M15 18l-6-6 6-6" stroke={theme.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
+            <TouchableOpacity
+              style={[styles.navBtn, { borderColor: theme.line }]}
+              onPress={ctx.prevMonth}
+              activeOpacity={0.7}
+            >
+              <Icon name="chevronLeft" size={15} color={theme.inkSoft} strokeWidth={2} />
             </TouchableOpacity>
-            <Text style={[styles.monthLabel, { fontFamily: theme.fdispFamily, color: theme.ink }]}>
-              {MONTH_NAMES[month]} {year}
-            </Text>
-            <TouchableOpacity onPress={ctx.nextMonth} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
-                <Path d="M9 18l6-6-6-6" stroke={theme.ink} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-              </Svg>
+            <Text style={[styles.monthLabel, { fontFamily: disp(tk, 500), color: theme.ink }]}>{monthLabel}</Text>
+            <TouchableOpacity
+              style={[styles.navBtn, { borderColor: theme.line }]}
+              onPress={ctx.nextMonth}
+              activeOpacity={0.7}
+            >
+              <Icon name="chevronRight" size={15} color={theme.inkSoft} strokeWidth={2} />
             </TouchableOpacity>
           </View>
 
-          {/* Day-of-week headers */}
-          <View style={styles.dayHeaders}>
-            {DAY_NAMES.map((d, i) => (
-              <View key={i} style={styles.dayHeader}>
-                <Text style={[styles.dayHeaderText, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                  {d}
-                </Text>
-              </View>
+          <View style={styles.dowRow}>
+            {DOW.map((d, i) => (
+              <Text key={i} style={[styles.dowText, { fontFamily: ui(600), color: theme.inkFaint }]}>
+                {d}
+              </Text>
             ))}
           </View>
 
-          {/* Grid */}
           <View style={styles.grid}>
-            {Array.from({ length: totalGridCells }).map((_, idx) => {
-              const dayNum = idx - firstDay + 1;
-              const isValid = dayNum >= 1 && dayNum <= daysInMonth;
-              const dayKey = isValid ? `${year}-${month + 1}-${dayNum}` : '';
-              const count = isValid ? (byDay[dayKey] || 0) : 0;
-              const isToday = dayKey === todayStr;
-              const isSelected = dayKey === state.selectedDay;
-              const hasDue = isValid && dueDays.has(dayNum);
-
-              return (
-                <TouchableOpacity
-                  key={idx}
-                  style={styles.gridCell}
-                  onPress={() => {
-                    if (isValid) { hapticSelect(); ctx.selectDay(dayKey); }
-                  }}
-                  disabled={!isValid}
-                  activeOpacity={0.7}
+            {days.map((d, i) => (
+              <TouchableOpacity
+                key={i}
+                style={styles.cell}
+                activeOpacity={0.7}
+                onPress={() => { hapticSelect(); ctx.selectDay(d.key); }}
+              >
+                <View
+                  style={[
+                    styles.cellInner,
+                    {
+                      backgroundColor: d.fill,
+                      borderWidth: d.ringWidth,
+                      borderColor: d.ringColor,
+                    },
+                  ]}
                 >
-                  {isValid && (
-                    <>
-                      {/* Activity fill */}
-                      {count > 0 && (
-                        <View
-                          style={[
-                            StyleSheet.absoluteFill,
-                            {
-                              backgroundColor: ctx.levelColor(count),
-                              borderRadius: 8,
-                              margin: 1,
-                            },
-                          ]}
-                        />
-                      )}
-                      {/* Today / selected ring */}
-                      {(isToday || isSelected) && (
-                        <View
-                          style={[
-                            StyleSheet.absoluteFill,
-                            {
-                              borderRadius: 8,
-                              margin: 1,
-                              borderWidth: 1.5,
-                              borderColor: isSelected ? theme.accent : theme.inkFaint,
-                            },
-                          ]}
-                        />
-                      )}
-                      {/* Day number */}
-                      <Text style={[
-                        styles.dayNum,
-                        { fontFamily: theme.fuiFamily },
-                        isToday ? { color: theme.accent, fontWeight: '700' } : { color: theme.ink },
-                        isSelected && !isToday ? { color: theme.accent } : undefined,
-                      ]}>
-                        {dayNum}
-                      </Text>
-                      {/* Due dot */}
-                      {hasDue && (
-                        <View
-                          style={[styles.dueDot, { backgroundColor: theme.accent }]}
-                        />
-                      )}
-                    </>
-                  )}
-                </TouchableOpacity>
-              );
-            })}
+                  <Text style={[styles.cellText, { fontFamily: ui(d.weight === 700 ? 700 : 500), color: d.color }]}>
+                    {d.day}
+                  </Text>
+                  {d.due && <View style={[styles.dueDot, { backgroundColor: theme.accent }]} />}
+                </View>
+              </TouchableOpacity>
+            ))}
           </View>
 
-          {/* Legend */}
           <View style={styles.legend}>
-            <Text style={[styles.legendText, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>Calm</Text>
-            {[0, 1, 2, 3, 4].map(n => (
-              <View key={n} style={[styles.legendCell, { backgroundColor: ctx.levelColor(n) }]} />
-            ))}
-            <Text style={[styles.legendText, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>Full</Text>
-            <View style={[styles.dueDotLegend, { backgroundColor: theme.accent }]} />
-            <Text style={[styles.legendText, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>Due</Text>
+            <View style={styles.legendGroup}>
+              <Text style={[styles.legendText, { fontFamily: ui(), color: theme.inkFaint }]}>Calm</Text>
+              {[0, 1, 2, 3, 4].map(n => (
+                <View
+                  key={n}
+                  style={[styles.legendCell, { backgroundColor: n === 0 ? theme.gridEmpty : calFill[n] }]}
+                />
+              ))}
+              <Text style={[styles.legendText, { fontFamily: ui(), color: theme.inkFaint }]}>Full</Text>
+            </View>
+            <View style={styles.legendGroup}>
+              <View style={[styles.dueLegendDot, { backgroundColor: theme.accent }]} />
+              <Text style={[styles.legendText, { fontFamily: ui(), color: theme.inkFaint }]}>Due</Text>
+            </View>
           </View>
-        </View>
+        </Card>
 
         {/* Selected day */}
-        <Text style={[styles.selectedLabel, { fontFamily: theme.fdispFamily, color: theme.ink }]}>
-          {selectedDayLabel}
-        </Text>
-
-        {selIdeas.length === 0 ? (
-          <Text style={[styles.emptyText, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-            No ideas on this day.
-          </Text>
-        ) : (
-          selIdeas.map(idea => (
-            <IdeaCard
-              key={idea.id}
-              idea={idea}
-              onPress={() => ctx.openReader(idea.id)}
-              onArchive={() => ctx.archiveIdea(idea.id)}
-            />
-          ))
-        )}
+        <Text style={[styles.selectedLabel, { fontFamily: disp(tk), color: theme.ink }]}>{selectedLabel}</Text>
+        <View style={{ marginTop: 12 }}>
+          {dayIdeas.length > 0 ? (
+            dayIdeas.map(idea => (
+              <IdeaCard
+                key={idea.id}
+                idea={idea}
+                onPress={() => ctx.openReader(idea.id)}
+                onArchive={() => ctx.archiveIdea(idea.id)}
+              />
+            ))
+          ) : (
+            <View style={[styles.empty, { borderColor: theme.line }]}>
+              <Svg width={80} height={46} viewBox="0 0 80 46">
+                <Circle cx={58} cy={16} r={10} fill={theme.sun} opacity={0.9} />
+                <Path d="M0 30 C14 24 22 34 36 30 S60 24 80 30 L80 46 L0 46 Z" fill={theme.wave1} />
+                <Path d="M0 36 C16 31 24 40 38 36 S62 31 80 37 L80 46 L0 46 Z" fill={theme.wave3} />
+              </Svg>
+              <Text style={[styles.emptyText, { fontFamily: ui(), color: theme.inkFaint }]}>
+                Nothing here yet — a calm day.
+              </Text>
+            </View>
+          )}
+        </View>
 
         {/* Open next steps */}
+        <View style={styles.stepsHeader}>
+          <Text style={[styles.stepsTitle, { fontFamily: disp(tk), color: theme.ink }]}>Open next steps</Text>
+          <Text style={[styles.dim, { fontFamily: ui(), color: theme.inkFaint }]}>{openTasks.length} open</Text>
+        </View>
         {openTasks.length > 0 && (
-          <View style={[styles.card, { backgroundColor: theme.surface, borderColor: theme.line }]}>
-            <Text style={[styles.sectionLabel, { fontFamily: theme.fuiFamily, color: theme.ink }]}>
-              Open next steps
-            </Text>
-            {openTasks.map(({ idea, task, idx }) => (
-              <View key={`${idea.id}-${idx}`} style={styles.taskRow}>
+          <Card radius={16} clip style={{ marginTop: 12 }}>
+            {openTasks.map(({ idea, task, idx }, i) => (
+              <View
+                key={`${idea.id}-${idx}`}
+                style={[styles.taskRow, i > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}
+              >
                 <Checkbox
                   checked={task.done}
                   onToggle={() => { animateLayout(); ctx.toggleChk(idea.id, idx); }}
@@ -247,149 +209,58 @@ export default function CalendarScreen() {
                   size={20}
                   successOnCheck
                 />
-                <TouchableOpacity
-                  style={styles.taskWrap}
-                  onPress={() => ctx.openReader(idea.id)}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.taskText, { fontFamily: theme.fuiFamily, color: theme.ink }]} numberOfLines={1}>
+                <TouchableOpacity style={{ flex: 1 }} activeOpacity={0.7} onPress={() => ctx.openReader(idea.id)}>
+                  <Text style={[styles.taskText, { fontFamily: ui(), color: theme.ink }]} numberOfLines={2}>
                     {task.text}
                   </Text>
-                  <Text style={[styles.taskIdea, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]} numberOfLines={1}>
-                    {idea.title}
+                  <Text style={[styles.taskIdea, { fontFamily: ui(), color: theme.accent }]} numberOfLines={1}>
+                    {idea.title || 'Untitled idea'}
                   </Text>
                 </TouchableOpacity>
               </View>
             ))}
-          </View>
+          </Card>
         )}
-
-        <View style={{ height: 120 }} />
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: {
-    flex: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: 16,
-    gap: 16,
-  },
-  title: {
-    fontSize: 30,
-  },
-  card: {
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    gap: 12,
-  },
-  monthNav: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  monthLabel: {
-    fontSize: 17,
-  },
-  dayHeaders: {
-    flexDirection: 'row',
-  },
-  dayHeader: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 4,
-  },
-  dayHeaderText: {
-    fontSize: 11,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  gridCell: {
-    width: `${100 / 7}%`,
-    aspectRatio: 1,
-    padding: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  dayNum: {
-    fontSize: 12,
-    lineHeight: 14,
-  },
-  dueDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    position: 'absolute',
-    top: 3,
-    right: 3,
-  },
-  legend: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    marginTop: 4,
-  },
-  legendText: {
-    fontSize: 11,
-  },
-  legendCell: {
-    width: 12,
-    height: 12,
-    borderRadius: 2,
-  },
-  dueDotLegend: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    marginLeft: 6,
-  },
-  selectedLabel: {
-    fontSize: 18,
-    marginTop: 4,
-  },
-  emptyText: {
-    fontSize: 14,
-    fontStyle: 'italic',
-  },
-  sectionLabel: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 4,
-  },
-  checkbox: {
-    width: 18,
-    height: 18,
-    borderRadius: 7,
-    borderWidth: 1.5,
-  },
-  taskWrap: {
-    flex: 1,
-  },
-  taskText: {
-    fontSize: 14,
-  },
-  taskIdea: {
-    fontSize: 11,
-    marginTop: 1,
-  },
+  root: { flex: 1 },
+  scroll: { flex: 1 },
+  content: { paddingHorizontal: 22 },
+  title: { fontSize: 30, letterSpacing: -0.2 },
+
+  monthCard: { marginTop: 18, paddingHorizontal: 16, paddingTop: 16, paddingBottom: 10 },
+  monthNav: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  navBtn: { width: 30, height: 30, borderRadius: 9, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  monthLabel: { fontSize: 17 },
+
+  dowRow: { flexDirection: 'row', marginBottom: 6 },
+  dowText: { flex: 1, textAlign: 'center', fontSize: 11 },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  cell: { width: `${100 / 7}%`, aspectRatio: 1, padding: 1.5 },
+  cellInner: { flex: 1, borderRadius: 11, alignItems: 'center', justifyContent: 'center' },
+  cellText: { fontSize: 13.5 },
+  dueDot: { position: 'absolute', top: 5, right: 6, width: 5, height: 5, borderRadius: 2.5 },
+
+  legend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 14 },
+  legendGroup: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  legendText: { fontSize: 11 },
+  legendCell: { width: 11, height: 11, borderRadius: 3 },
+  dueLegendDot: { width: 6, height: 6, borderRadius: 3 },
+
+  selectedLabel: { fontSize: 18, marginTop: 22 },
+  empty: { paddingVertical: 22, paddingHorizontal: 16, borderWidth: 1, borderStyle: 'dashed', borderRadius: 15, alignItems: 'center' },
+  emptyText: { fontSize: 13.5, marginTop: 10 },
+
+  stepsHeader: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', marginTop: 26 },
+  stepsTitle: { fontSize: 18 },
+  dim: { fontSize: 12.5 },
+
+  taskRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, paddingVertical: 13, paddingHorizontal: 15 },
+  taskText: { fontSize: 14, lineHeight: 19 },
+  taskIdea: { fontSize: 12, marginTop: 3 },
 });

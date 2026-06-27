@@ -1,4 +1,4 @@
-import { Audio } from 'expo-av';
+import { createAudioPlayer, setAudioModeAsync, type AudioPlayer } from 'expo-audio';
 
 // Small, fail-safe SFX manager. Sounds are a finishing touch — every call
 // swallows errors and respects the user's preference and the device mute switch.
@@ -11,7 +11,7 @@ const sources: Record<SoundName, number> = {
   archive: require('../assets/sfx/archive.wav'),
 };
 
-const players: Partial<Record<SoundName, Audio.Sound>> = {};
+const players: Partial<Record<SoundName, AudioPlayer>> = {};
 let enabled = true;
 let loading = false;
 let loaded = false;
@@ -26,19 +26,16 @@ export async function loadSounds(): Promise<void> {
   loading = true;
   try {
     // Don't override the silent switch — SFX are non-essential.
-    await Audio.setAudioModeAsync({ playsInSilentModeIOS: false });
-    await Promise.all(
-      (Object.keys(sources) as SoundName[]).map(async name => {
-        try {
-          const { sound } = await Audio.Sound.createAsync(sources[name], {
-            volume: 0.55,
-          });
-          players[name] = sound;
-        } catch {
-          // Skip any sound that fails to load.
-        }
-      })
-    );
+    await setAudioModeAsync({ playsInSilentMode: false });
+    for (const name of Object.keys(sources) as SoundName[]) {
+      try {
+        const player = createAudioPlayer(sources[name]);
+        player.volume = 0.55;
+        players[name] = player;
+      } catch {
+        // Skip any sound that fails to load.
+      }
+    }
     loaded = true;
   } catch {
     // Audio unavailable — the app simply runs without sound.
@@ -50,7 +47,12 @@ export async function loadSounds(): Promise<void> {
 /** Fire-and-forget; replays from the start even if already playing. */
 export function playSound(name: SoundName): void {
   if (!enabled) return;
-  const s = players[name];
-  if (!s) return;
-  s.replayAsync().catch(() => {});
+  const p = players[name];
+  if (!p) return;
+  try {
+    p.seekTo(0);
+    p.play();
+  } catch {
+    // Ignore playback hiccups — sound is non-essential.
+  }
 }

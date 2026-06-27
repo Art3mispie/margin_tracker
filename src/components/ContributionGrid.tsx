@@ -20,10 +20,10 @@ export default function ContributionGrid() {
   const startDate = new Date(todaySunday);
   startDate.setDate(startDate.getDate() - (WEEKS - 1) * 7);
 
-  const columns: JSX.Element[] = [];
+  const columns: React.JSX.Element[] = [];
 
   for (let w = 0; w < WEEKS; w++) {
-    const cells: JSX.Element[] = [];
+    const cells: React.JSX.Element[] = [];
     for (let d = 0; d < DAYS; d++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + w * 7 + d);

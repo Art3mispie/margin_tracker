@@ -12,27 +12,27 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { AppContext } from '../AppContext';
 import { useTheme } from '../theme';
+import { disp, ui } from '../fonts';
+import Icon from '../components/Icon';
+import Card from '../components/Card';
 import Checkbox from '../components/Checkbox';
 import { animateLayout } from '../anim';
 import { hapticTap, hapticSuccess, hapticWarning } from '../haptics';
 import { playSound } from '../sound';
 
-const SKETCH_DIR = FileSystem.documentDirectory
-  ? FileSystem.documentDirectory + 'sketches/'
-  : null;
+const SKETCH_DIR = FileSystem.documentDirectory ? FileSystem.documentDirectory + 'sketches/' : null;
 
 export default function NoteEditor() {
   const ctx = useContext(AppContext);
   const theme = useTheme();
+  const tk = theme.key;
   const insets = useSafeAreaInsets();
   const { state } = ctx;
 
-  const idea = state.noteId !== null
-    ? state.ideas.find(i => i.id === state.noteId)
-    : null;
+  const idea = state.noteId !== null ? state.ideas.find(i => i.id === state.noteId) : null;
 
   const [newTask, setNewTask] = useState('');
   const [newTagText, setNewTagText] = useState('');
@@ -40,61 +40,88 @@ export default function NoteEditor() {
 
   if (!idea) return null;
 
-  const due = idea.due ? ctx.dueInfo(idea.due) : null;
+  const di = idea.due ? ctx.dueInfo(idea.due) : null;
+  const createdToday = ctx.dayKey(idea.createdAt) === ctx.dayKey(Date.now());
+  const savedLabel = createdToday ? 'Saved' : `Saved · ${ctx.fmtShort(idea.createdAt)}`;
 
-  const allTags = Array.from(
-    new Set(ctx.active().flatMap(i => i.tags))
-  ).sort();
-  const suggestedTags = allTags.filter(t => !idea.tags.includes(t));
-
+  const tagMap: Record<string, number> = {};
+  ctx.active().forEach(i => i.tags.forEach(t => (tagMap[t] = (tagMap[t] || 0) + 1)));
+  const suggestedTags = Object.keys(tagMap)
+    .sort((a, b) => tagMap[b] - tagMap[a])
+    .filter(t => !idea.tags.includes(t))
+    .slice(0, 8);
   const existingProjects = Array.from(
     new Set(ctx.active().filter(i => i.project).map(i => i.project as string))
-  ).sort();
+  );
+  if (idea.project && !existingProjects.includes(idea.project)) existingProjects.push(idea.project);
+
+  const showChecklist = !!idea.extras.checklist || idea.checklist.length > 0;
+  const showSketch = !!idea.extras.sketch;
+  const showLinks = !!idea.extras.links || idea.links.length > 0;
+  const hasExtras = showChecklist || showSketch || showLinks;
+  const addOptions = [
+    !showChecklist && { label: 'Checklist', kind: 'checklist' as const },
+    !showSketch && { label: 'Sketch', kind: 'sketch' as const },
+    !showLinks && { label: 'Link', kind: 'links' as const },
+  ].filter(Boolean) as Array<{ label: string; kind: 'checklist' | 'sketch' | 'links' }>;
 
   const handleAddTask = () => {
     if (!newTask.trim()) return;
-    const checklist = [...idea.checklist, { text: newTask.trim(), done: false }];
     animateLayout();
-    ctx.patch(idea.id, { checklist });
+    ctx.patch(idea.id, {
+      checklist: [...idea.checklist, { text: newTask.trim(), done: false }],
+      extras: { ...idea.extras, checklist: true },
+    });
     setNewTask('');
   };
 
-  const handleAddTag = (tag: string) => {
-    const t = tag.trim().replace(/^#/, '').toLowerCase();
-    if (t && !idea.tags.includes(t)) {
-      ctx.addTagToNote(idea.id, t);
-    }
+  const handleAddTag = (raw: string) => {
+    const t = raw.trim().replace(/^#/, '').replace(/\s+/g, '-').toLowerCase();
+    if (t) ctx.addTagToNote(idea.id, t);
     setNewTagText('');
   };
 
   const handleAddLink = () => {
     if (!newLink.trim()) return;
-    const links = [...idea.links, { label: newLink.trim() }];
     animateLayout();
-    ctx.patch(idea.id, { links });
+    ctx.patch(idea.id, {
+      links: [...idea.links, { label: newLink.trim() }],
+      extras: { ...idea.extras, links: true },
+    });
     setNewLink('');
+  };
+
+  const setDueQuick = (offset: number | null) => {
+    if (offset === null) {
+      ctx.setDue(idea.id, null);
+    } else {
+      const d = new Date();
+      d.setDate(d.getDate() + offset);
+      d.setHours(17, 0, 0, 0);
+      ctx.setDue(idea.id, d.getTime());
+    }
+    ctx.dispatch({ type: 'SET_META_PANEL', panel: null });
+  };
+
+  const thisWeekendOffset = () => {
+    const day = new Date().getDay();
+    return (6 - day + 7) % 7 || 6;
   };
 
   const handleAddSketch = async () => {
     try {
       const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (!perm.granted) return;
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        quality: 0.8,
-      });
+      const result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], quality: 0.8 });
       const picked = result.assets?.[0]?.uri;
       if (result.canceled || !picked) return;
       animateLayout();
-
-      // Copy into the app's document directory so the image survives relaunches
-      // (the picker's cache URI can be purged by the OS).
       let stored = picked;
       if (SKETCH_DIR) {
         try {
           await FileSystem.makeDirectoryAsync(SKETCH_DIR, { intermediates: true });
         } catch {
-          // Directory already exists — fine.
+          // already exists
         }
         const ext = (picked.split('.').pop() || 'jpg').split('?')[0];
         const dest = `${SKETCH_DIR}${idea.id}-${Date.now()}.${ext}`;
@@ -103,7 +130,7 @@ export default function NoteEditor() {
       }
       ctx.addSketch(idea.id, stored);
     } catch {
-      // Permission denied, cancelled, or copy failed — leave the note unchanged.
+      // cancelled / denied
     }
   };
 
@@ -116,58 +143,325 @@ export default function NoteEditor() {
     }
   };
 
-  const setDueQuick = (offset: number | null) => {
-    if (offset === null) {
-      ctx.setDue(idea.id, null);
-    } else {
-      const d = new Date();
-      d.setDate(d.getDate() + offset);
-      d.setHours(23, 59, 0, 0);
-      ctx.setDue(idea.id, d.getTime());
-    }
-    ctx.dispatch({ type: 'SET_META_PANEL', panel: null });
+  const togglePanel = (panel: 'project' | 'due') => {
+    animateLayout();
+    ctx.dispatch({ type: 'SET_META_PANEL', panel: state.metaPanel === panel ? null : panel });
   };
 
-  const getThisWeekend = () => {
-    const d = new Date();
-    const day = d.getDay();
-    const diff = day <= 6 ? 6 - day : 0;
-    return diff;
-  };
+  const dueChipColor = di ? (di.overdue ? '#C0492F' : theme.accentInk) : theme.inkSoft;
+  const dueChipBg = di ? (di.overdue ? 'rgba(192,73,47,0.1)' : theme.accentSoft) : theme.surface;
+  const dueChipBorder = di && di.overdue ? 'rgba(192,73,47,0.3)' : theme.line;
 
   return (
-    <View style={[StyleSheet.absoluteFill, styles.overlay]}>
-      <KeyboardAvoidingView
-        style={StyleSheet.absoluteFill}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={0}
-      >
-        <View style={[
-          styles.sheet,
-          { backgroundColor: theme.bg, paddingTop: insets.top },
-        ]}>
-          {/* Toolbar */}
-          <View style={[styles.toolbar, { borderBottomColor: theme.line }]}>
-            <TouchableOpacity onPress={ctx.closeNote}>
-              <Text style={[styles.doneBtn, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                Done
+    <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: theme.bg }]}>
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        {/* Toolbar */}
+        <View style={[styles.toolbar, { paddingTop: insets.top + 6 }]}>
+          <TouchableOpacity style={styles.backBtn} onPress={ctx.closeNote} hitSlop={6}>
+            <Icon name="chevronLeft" size={18} color={theme.inkSoft} strokeWidth={1.9} />
+            <Text style={[styles.backText, { fontFamily: ui(600), color: theme.inkSoft }]}>Done</Text>
+          </TouchableOpacity>
+          <View style={styles.toolbarRight}>
+            <Text style={[styles.saved, { fontFamily: ui(), color: theme.inkFaint }]}>{savedLabel}</Text>
+            <TouchableOpacity
+              onPress={() => ctx.dispatch({ type: 'SET_NOTE_MENU', open: !state.noteMenuOpen })}
+              hitSlop={6}
+              style={{ padding: 6 }}
+            >
+              <Icon name="dots" size={20} color={theme.inkSoft} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          <TextInput
+            style={[styles.titleInput, { fontFamily: disp(tk), color: theme.ink }]}
+            value={idea.title}
+            onChangeText={text => ctx.patch(idea.id, { title: text })}
+            placeholder="Untitled idea"
+            placeholderTextColor={theme.inkFaint}
+            multiline
+            textAlignVertical="top"
+            autoFocus={!idea.title}
+          />
+
+          {/* Meta pills */}
+          <View style={styles.metaPills}>
+            <TouchableOpacity
+              style={[styles.pill, { borderColor: theme.line, backgroundColor: idea.project ? theme.accentSoft : theme.surface }]}
+              onPress={() => togglePanel('project')}
+            >
+              <Icon name="folder" size={13} color={idea.project ? theme.accentInk : theme.inkSoft} strokeWidth={1.8} />
+              <Text style={[styles.pillText, { fontFamily: ui(600), color: idea.project ? theme.accentInk : theme.inkSoft }]}>
+                {idea.project || 'No project'}
               </Text>
             </TouchableOpacity>
-            <View style={styles.toolbarRight}>
-              <Text style={[styles.savedLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                Saved · {ctx.fmtShort(idea.createdAt)}
+            <TouchableOpacity
+              style={[styles.pill, { borderColor: dueChipBorder, backgroundColor: dueChipBg }]}
+              onPress={() => togglePanel('due')}
+            >
+              <Icon name="clock" size={13} color={dueChipColor} strokeWidth={1.8} />
+              <Text style={[styles.pillText, { fontFamily: ui(600), color: dueChipColor }]}>
+                {di ? di.label : 'Add due date'}
               </Text>
-              <TouchableOpacity
-                onPress={() => ctx.dispatch({ type: 'SET_NOTE_MENU', open: !state.noteMenuOpen })}
-              >
-                <Text style={[styles.menuBtn, { color: theme.inkSoft }]}>⋯</Text>
-              </TouchableOpacity>
-            </View>
+            </TouchableOpacity>
           </View>
 
-          {/* Note menu */}
-          {state.noteMenuOpen && (
-            <View style={[styles.noteMenu, { backgroundColor: theme.surface, borderColor: theme.line }]}>
+          {/* Project panel */}
+          {state.metaPanel === 'project' && (
+            <Card radius={14} style={styles.panel}>
+              <View style={styles.panelChips}>
+                <TouchableOpacity
+                  style={[styles.optChip, { borderColor: theme.line, backgroundColor: theme.bg }]}
+                  onPress={() => { ctx.setProject(idea.id, null); ctx.dispatch({ type: 'SET_META_PANEL', panel: null }); }}
+                >
+                  <Text style={[styles.optText, { fontFamily: ui(600), color: theme.inkSoft }]}>None</Text>
+                </TouchableOpacity>
+                {existingProjects.map(proj => {
+                  const active = idea.project === proj;
+                  return (
+                    <TouchableOpacity
+                      key={proj}
+                      style={[styles.optChip, { borderColor: active ? theme.accent : theme.line, backgroundColor: active ? theme.accent : theme.bg }]}
+                      onPress={() => { ctx.setProject(idea.id, proj); ctx.dispatch({ type: 'SET_META_PANEL', panel: null }); }}
+                    >
+                      <Text style={[styles.optText, { fontFamily: ui(600), color: active ? '#fff' : theme.ink }]}>{proj}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+              <TouchableOpacity
+                style={[styles.panelNew, { borderTopColor: theme.line }]}
+                onPress={() => { ctx.dispatch({ type: 'SET_META_PANEL', panel: null }); ctx.startNewProject(); }}
+              >
+                <Text style={[styles.optText, { fontFamily: ui(500), color: theme.accent }]}>+ New project…</Text>
+              </TouchableOpacity>
+            </Card>
+          )}
+
+          {/* Due panel */}
+          {state.metaPanel === 'due' && (
+            <Card radius={14} style={styles.panel}>
+              <View style={styles.panelChips}>
+                {[
+                  { label: 'Today', offset: 0 },
+                  { label: 'Tomorrow', offset: 1 },
+                  { label: 'This weekend', offset: thisWeekendOffset() },
+                  { label: 'Next week', offset: 7 },
+                  { label: 'Clear', offset: null as number | null },
+                ].map(({ label, offset }) => (
+                  <TouchableOpacity
+                    key={label}
+                    style={[styles.optChip, { borderColor: theme.line, backgroundColor: theme.bg }]}
+                    onPress={() => setDueQuick(offset)}
+                  >
+                    <Text style={[styles.optText, { fontFamily: ui(600), color: label === 'Clear' ? theme.inkFaint : theme.ink }]}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </Card>
+          )}
+
+          {/* Tags */}
+          <View style={styles.tagsRow}>
+            {idea.tags.map(tag => (
+              <TouchableOpacity
+                key={tag}
+                style={[styles.tagChip, { backgroundColor: theme.accentSoft }]}
+                onPress={() => ctx.removeTag(idea.id, tag)}
+              >
+                <Text style={[styles.tagText, { fontFamily: ui(600), color: theme.accentInk }]}>#{tag}</Text>
+                <Text style={[styles.tagX, { color: theme.accentInk }]}>×</Text>
+              </TouchableOpacity>
+            ))}
+            <TextInput
+              style={[styles.tagInput, { fontFamily: ui(), color: theme.ink }]}
+              placeholder="+ custom"
+              placeholderTextColor={theme.inkFaint}
+              value={newTagText}
+              onChangeText={setNewTagText}
+              onSubmitEditing={() => handleAddTag(newTagText)}
+              blurOnSubmit={false}
+              autoCapitalize="none"
+            />
+          </View>
+          {suggestedTags.length > 0 && (
+            <View style={{ marginTop: 9 }}>
+              <Text style={[styles.suggestLabel, { fontFamily: ui(600), color: theme.inkFaint }]}>SUGGESTED</Text>
+              <View style={styles.suggestRow}>
+                {suggestedTags.map(tag => (
+                  <TouchableOpacity
+                    key={tag}
+                    style={[styles.suggestChip, { borderColor: theme.line }]}
+                    onPress={() => ctx.addTagToNote(idea.id, tag)}
+                  >
+                    <Text style={[styles.optText, { fontFamily: ui(600), color: theme.inkSoft }]}>#{tag}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {/* Body */}
+          <TextInput
+            style={[styles.bodyInput, { fontFamily: ui(), color: theme.inkSoft }]}
+            value={idea.body}
+            onChangeText={text => ctx.patch(idea.id, { body: text })}
+            placeholder="Start writing… thoughts, context, the long version."
+            placeholderTextColor={theme.inkFaint}
+            multiline
+            textAlignVertical="top"
+          />
+
+          {/* Extras */}
+          {hasExtras && (
+            <View style={[styles.extras, { borderTopColor: theme.line }]}>
+              <Text style={[styles.extrasLabel, { fontFamily: ui(700), color: theme.inkFaint }]}>EXTRAS</Text>
+
+              {showChecklist && (
+                <View style={{ marginTop: 14 }}>
+                  <View style={styles.extraHead}>
+                    <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Checklist</Text>
+                    <Text style={[styles.dim, { fontFamily: ui(), color: theme.inkFaint }]}>
+                      {idea.checklist.length
+                        ? `${idea.checklist.filter(c => c.done).length} of ${idea.checklist.length} done`
+                        : 'Nothing yet'}
+                    </Text>
+                  </View>
+                  {idea.checklist.map((item, idx) => (
+                    <View key={idx} style={styles.checkRow}>
+                      <Checkbox
+                        checked={item.done}
+                        onToggle={() => ctx.toggleChk(idea.id, idx)}
+                        accent={theme.accent}
+                        line={theme.line}
+                        size={21}
+                        successOnCheck
+                      />
+                      <Text
+                        style={[
+                          styles.checkText,
+                          {
+                            fontFamily: ui(),
+                            color: item.done ? theme.inkFaint : theme.ink,
+                            textDecorationLine: item.done ? 'line-through' : 'none',
+                          },
+                        ]}
+                      >
+                        {item.text}
+                      </Text>
+                      <TouchableOpacity
+                        onPress={() => { hapticTap(); animateLayout(); ctx.removeChk(idea.id, idx); }}
+                        hitSlop={8}
+                      >
+                        <Text style={[styles.removeX, { color: theme.inkFaint }]}>×</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <View style={styles.checkRow}>
+                    <View style={[styles.addBox, { borderColor: theme.line }]} />
+                    <TextInput
+                      style={[styles.addInput, { fontFamily: ui(), color: theme.ink }]}
+                      placeholder="Add a step…"
+                      placeholderTextColor={theme.inkFaint}
+                      value={newTask}
+                      onChangeText={setNewTask}
+                      onSubmitEditing={handleAddTask}
+                      blurOnSubmit={false}
+                    />
+                  </View>
+                </View>
+              )}
+
+              {showSketch && (
+                <View style={{ marginTop: 18 }}>
+                  <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Sketches</Text>
+                  <View style={styles.sketchRow}>
+                    {idea.sketches.map((uri, idx) => (
+                      <TouchableOpacity
+                        key={idx}
+                        style={[styles.sketchSlot, { borderColor: theme.line }]}
+                        onLongPress={() => handleRemoveSketch(idx)}
+                        activeOpacity={0.85}
+                      >
+                        <Image source={{ uri }} style={styles.sketchImg} resizeMode="cover" />
+                      </TouchableOpacity>
+                    ))}
+                    {idea.sketches.length < 2 && (
+                      <TouchableOpacity
+                        style={[styles.sketchSlot, styles.sketchAdd, { borderColor: theme.line }]}
+                        onPress={handleAddSketch}
+                        activeOpacity={0.7}
+                      >
+                        <Icon name="plus" size={18} color={theme.inkFaint} strokeWidth={2} />
+                        <Text style={[styles.sketchAddText, { fontFamily: ui(), color: theme.inkFaint }]}>Add</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </View>
+              )}
+
+              {showLinks && (
+                <View style={{ marginTop: 18 }}>
+                  <Text style={[styles.extraTitle, { fontFamily: disp(tk), color: theme.ink }]}>Links</Text>
+                  <View style={{ marginTop: 9, gap: 7 }}>
+                    {idea.links.map((link, idx) => (
+                      <Card key={idx} radius={12} style={styles.linkRow}>
+                        <Icon name="link" size={15} color={theme.accent} strokeWidth={1.8} />
+                        <Text style={[styles.linkText, { fontFamily: ui(), color: theme.ink }]} numberOfLines={1}>
+                          {link.label}
+                        </Text>
+                        <TouchableOpacity onPress={() => { animateLayout(); ctx.removeLink(idea.id, idx); }} hitSlop={8}>
+                          <Text style={[styles.removeX, { color: theme.inkFaint }]}>×</Text>
+                        </TouchableOpacity>
+                      </Card>
+                    ))}
+                    <TextInput
+                      style={[styles.linkInput, { borderColor: theme.line, fontFamily: ui(), color: theme.ink }]}
+                      placeholder="Paste a link or reference…"
+                      placeholderTextColor={theme.inkFaint}
+                      value={newLink}
+                      onChangeText={setNewLink}
+                      onSubmitEditing={handleAddLink}
+                      blurOnSubmit={false}
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* Add extras */}
+          <View style={styles.addExtras}>
+            {addOptions.map(opt => (
+              <TouchableOpacity
+                key={opt.kind}
+                style={[styles.addExtraBtn, { borderColor: theme.line, backgroundColor: theme.surface }]}
+                onPress={() => { animateLayout(); ctx.addExtra(idea.id, opt.kind); }}
+              >
+                <Icon name="plus" size={14} color={theme.accent} strokeWidth={2} />
+                <Text style={[styles.addExtraText, { fontFamily: ui(600), color: theme.inkSoft }]}>{opt.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </ScrollView>
+
+        {/* Note ••• menu */}
+        {state.noteMenuOpen && (
+          <>
+            <TouchableOpacity
+              style={StyleSheet.absoluteFill}
+              activeOpacity={1}
+              onPress={() => ctx.dispatch({ type: 'SET_NOTE_MENU', open: false })}
+            />
+            <View style={[styles.noteMenu, { top: insets.top + 44, backgroundColor: theme.surface, borderColor: theme.line }]}>
               <TouchableOpacity
                 style={styles.noteMenuItem}
                 onPress={() => {
@@ -177,11 +471,11 @@ export default function NoteEditor() {
                   ctx.archiveNote();
                 }}
               >
-                <Text style={[styles.noteMenuText, { fontFamily: theme.fuiFamily, color: theme.ink }]}>
+                <Icon name="archive" size={16} color={theme.inkSoft} strokeWidth={1.7} />
+                <Text style={[styles.noteMenuText, { fontFamily: ui(), color: theme.ink }]}>
                   {idea.archived ? 'Unarchive' : 'Archive'}
                 </Text>
               </TouchableOpacity>
-              <View style={[styles.menuDivider, { backgroundColor: theme.line }]} />
               <TouchableOpacity
                 style={styles.noteMenuItem}
                 onPress={() => {
@@ -190,628 +484,86 @@ export default function NoteEditor() {
                   ctx.deleteNote();
                 }}
               >
-                <Text style={[styles.noteMenuText, { fontFamily: theme.fuiFamily, color: '#DC2626' }]}>
-                  Delete
-                </Text>
+                <Icon name="trash" size={16} color="#C0492F" strokeWidth={1.7} />
+                <Text style={[styles.noteMenuText, { fontFamily: ui(), color: '#C0492F' }]}>Delete idea</Text>
               </TouchableOpacity>
             </View>
-          )}
-
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.content}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {/* Title */}
-            <TextInput
-              style={[styles.titleInput, { fontFamily: theme.fdispFamily, color: theme.ink }]}
-              value={idea.title}
-              onChangeText={text => ctx.patch(idea.id, { title: text })}
-              placeholder="Idea title…"
-              placeholderTextColor={theme.inkFaint}
-              multiline
-              textAlignVertical="top"
-              autoFocus={!idea.title}
-            />
-
-            {/* Meta chips */}
-            <View style={styles.metaChips}>
-              {/* Project */}
-              <TouchableOpacity
-                style={[
-                  styles.metaChip,
-                  {
-                    backgroundColor: idea.project ? theme.accentSoft : theme.canvas,
-                    borderColor: theme.line,
-                  },
-                ]}
-                onPress={() => {
-                  animateLayout();
-                  ctx.dispatch({
-                    type: 'SET_META_PANEL',
-                    panel: state.metaPanel === 'project' ? null : 'project',
-                  });
-                }}
-              >
-                <Text style={[
-                  styles.metaChipText,
-                  { fontFamily: theme.fuiFamily, color: idea.project ? theme.accent : theme.inkSoft },
-                ]}>
-                  {idea.project || '+ Project'}
-                </Text>
-              </TouchableOpacity>
-
-              {/* Due */}
-              <TouchableOpacity
-                style={[
-                  styles.metaChip,
-                  {
-                    backgroundColor: idea.due ? (due?.overdue ? '#FEE2E2' : theme.accentSoft) : theme.canvas,
-                    borderColor: theme.line,
-                  },
-                ]}
-                onPress={() => {
-                  animateLayout();
-                  ctx.dispatch({
-                    type: 'SET_META_PANEL',
-                    panel: state.metaPanel === 'due' ? null : 'due',
-                  });
-                }}
-              >
-                <Text style={[
-                  styles.metaChipText,
-                  {
-                    fontFamily: theme.fuiFamily,
-                    color: idea.due
-                      ? (due?.overdue ? '#DC2626' : theme.accent)
-                      : theme.inkSoft,
-                  },
-                ]}>
-                  {due ? due.label : '+ Due date'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Project panel */}
-            {state.metaPanel === 'project' && (
-              <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.line }]}>
-                <TouchableOpacity
-                  style={styles.panelItem}
-                  onPress={() => {
-                    ctx.setProject(idea.id, null);
-                    ctx.dispatch({ type: 'SET_META_PANEL', panel: null });
-                  }}
-                >
-                  <Text style={[styles.panelItemText, { fontFamily: theme.fuiFamily, color: theme.inkSoft }]}>
-                    None
-                  </Text>
-                  {!idea.project && <Text style={{ color: theme.accent }}>✓</Text>}
-                </TouchableOpacity>
-                {existingProjects.map(proj => (
-                  <TouchableOpacity
-                    key={proj}
-                    style={[styles.panelItem, { borderTopWidth: 1, borderTopColor: theme.line }]}
-                    onPress={() => {
-                      ctx.setProject(idea.id, proj);
-                      ctx.dispatch({ type: 'SET_META_PANEL', panel: null });
-                    }}
-                  >
-                    <Text style={[styles.panelItemText, { fontFamily: theme.fuiFamily, color: theme.ink }]}>
-                      {proj}
-                    </Text>
-                    {idea.project === proj && <Text style={{ color: theme.accent }}>✓</Text>}
-                  </TouchableOpacity>
-                ))}
-                <TouchableOpacity
-                  style={[styles.panelItem, { borderTopWidth: 1, borderTopColor: theme.line }]}
-                  onPress={() => {
-                    ctx.dispatch({ type: 'SET_META_PANEL', panel: null });
-                    ctx.startNewProject();
-                  }}
-                >
-                  <Text style={[styles.panelItemText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                    + New project
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Due panel */}
-            {state.metaPanel === 'due' && (
-              <View style={[styles.panel, { backgroundColor: theme.surface, borderColor: theme.line }]}>
-                {[
-                  { label: 'Today', offset: 0 },
-                  { label: 'Tomorrow', offset: 1 },
-                  { label: 'This weekend', offset: getThisWeekend() },
-                  { label: 'Next week', offset: 7 },
-                ].map(({ label, offset }) => (
-                  <TouchableOpacity
-                    key={label}
-                    style={[styles.panelItem, { borderTopWidth: 1, borderTopColor: theme.line }]}
-                    onPress={() => setDueQuick(offset)}
-                  >
-                    <Text style={[styles.panelItemText, { fontFamily: theme.fuiFamily, color: theme.ink }]}>
-                      {label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-                {idea.due && (
-                  <TouchableOpacity
-                    style={[styles.panelItem, { borderTopWidth: 1, borderTopColor: theme.line }]}
-                    onPress={() => setDueQuick(null)}
-                  >
-                    <Text style={[styles.panelItemText, { fontFamily: theme.fuiFamily, color: '#DC2626' }]}>
-                      Clear
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            )}
-
-            {/* Tags */}
-            <View style={styles.tagsSection}>
-              <View style={styles.tagsRow}>
-                {idea.tags.map(tag => (
-                  <View key={tag} style={[styles.tagChip, { backgroundColor: theme.accentSoft }]}>
-                    <Text style={[styles.tagText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                      #{tag}
-                    </Text>
-                    <TouchableOpacity onPress={() => ctx.removeTag(idea.id, tag)}>
-                      <Text style={[styles.tagX, { color: theme.accent }]}>×</Text>
-                    </TouchableOpacity>
-                  </View>
-                ))}
-                <TextInput
-                  style={[styles.tagInput, { fontFamily: theme.fuiFamily, color: theme.ink, borderColor: theme.line }]}
-                  placeholder="+ tag"
-                  placeholderTextColor={theme.inkFaint}
-                  value={newTagText}
-                  onChangeText={setNewTagText}
-                  onSubmitEditing={() => handleAddTag(newTagText)}
-                  blurOnSubmit={false}
-                />
-              </View>
-              {suggestedTags.length > 0 && (
-                <View style={styles.suggestedTags}>
-                  <Text style={[styles.suggestedLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                    Suggested:
-                  </Text>
-                  {suggestedTags.slice(0, 5).map(tag => (
-                    <TouchableOpacity
-                      key={tag}
-                      onPress={() => ctx.addTagToNote(idea.id, tag)}
-                    >
-                      <Text style={[styles.suggestedTag, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                        #{tag}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              )}
-            </View>
-
-            {/* Body */}
-            <TextInput
-              style={[styles.bodyInput, { fontFamily: theme.fuiFamily, color: theme.ink }]}
-              value={idea.body}
-              onChangeText={text => ctx.patch(idea.id, { body: text })}
-              placeholder="Add notes, details, or just think out loud…"
-              placeholderTextColor={theme.inkFaint}
-              multiline
-              textAlignVertical="top"
-            />
-
-            {/* Extras */}
-            {(idea.extras.checklist || idea.extras.links || idea.extras.sketch) && (
-              <View style={[styles.extrasSection, { borderTopColor: theme.line }]}>
-                {/* Checklist */}
-                {idea.extras.checklist && (
-                  <View style={styles.extra}>
-                    <Text style={[styles.extraLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                      CHECKLIST
-                    </Text>
-                    {idea.checklist.map((item, idx) => (
-                      <View key={idx} style={styles.checkRow}>
-                        <Checkbox
-                          checked={item.done}
-                          onToggle={() => ctx.toggleChk(idea.id, idx)}
-                          accent={theme.accent}
-                          line={theme.line}
-                          size={20}
-                          successOnCheck
-                        />
-                        <Text style={[
-                          styles.checkText,
-                          { fontFamily: theme.fuiFamily, color: item.done ? theme.inkFaint : theme.ink },
-                          item.done && { textDecorationLine: 'line-through' },
-                        ]}>
-                          {item.text}
-                        </Text>
-                        <TouchableOpacity onPress={() => { hapticTap(); animateLayout(); ctx.removeChk(idea.id, idx); }}>
-                          <Text style={[styles.removeBtn, { color: theme.inkFaint }]}>×</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    <View style={styles.checkRow}>
-                      <TextInput
-                        style={[styles.newTaskInput, { fontFamily: theme.fuiFamily, color: theme.ink, borderColor: theme.line }]}
-                        placeholder="Add step…"
-                        placeholderTextColor={theme.inkFaint}
-                        value={newTask}
-                        onChangeText={setNewTask}
-                        onSubmitEditing={handleAddTask}
-                        blurOnSubmit={false}
-                      />
-                    </View>
-                  </View>
-                )}
-
-                {/* Links */}
-                {idea.extras.links && (
-                  <View style={styles.extra}>
-                    <Text style={[styles.extraLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                      LINKS
-                    </Text>
-                    {idea.links.map((link, idx) => (
-                      <View key={idx} style={styles.linkRow}>
-                        <Text style={[styles.linkText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                          {link.label}
-                        </Text>
-                        <TouchableOpacity onPress={() => { hapticTap(); animateLayout(); ctx.removeLink(idea.id, idx); }}>
-                          <Text style={[styles.removeBtn, { color: theme.inkFaint }]}>×</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ))}
-                    <TextInput
-                      style={[styles.newTaskInput, { fontFamily: theme.fuiFamily, color: theme.ink, borderColor: theme.line }]}
-                      placeholder="Paste link or label…"
-                      placeholderTextColor={theme.inkFaint}
-                      value={newLink}
-                      onChangeText={setNewLink}
-                      onSubmitEditing={handleAddLink}
-                      blurOnSubmit={false}
-                    />
-                  </View>
-                )}
-
-                {/* Sketches */}
-                {idea.extras.sketch && (
-                  <View style={styles.extra}>
-                    <Text style={[styles.extraLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                      SKETCHES
-                    </Text>
-                    <View style={styles.sketchGrid}>
-                      {idea.sketches.map((uri, idx) => (
-                        <View key={idx} style={[styles.sketchThumb, { borderColor: theme.line }]}>
-                          <Image source={{ uri }} style={styles.sketchImage} resizeMode="cover" />
-                          <TouchableOpacity
-                            style={[styles.sketchRemove, { backgroundColor: theme.ink }]}
-                            onPress={() => handleRemoveSketch(idx)}
-                          >
-                            <Text style={styles.sketchRemoveText}>×</Text>
-                          </TouchableOpacity>
-                        </View>
-                      ))}
-                      <TouchableOpacity
-                        style={[styles.sketchAdd, { borderColor: theme.line, backgroundColor: theme.canvas }]}
-                        onPress={handleAddSketch}
-                        activeOpacity={0.7}
-                      >
-                        <Text style={[styles.sketchAddText, { color: theme.inkSoft }]}>＋</Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-              </View>
-            )}
-
-            {/* Add extras */}
-            <View style={styles.addExtras}>
-              {!idea.extras.checklist && (
-                <TouchableOpacity
-                  style={[styles.addExtraBtn, { borderColor: theme.line }]}
-                  onPress={() => { hapticTap(); animateLayout(); ctx.addExtra(idea.id, 'checklist'); }}
-                >
-                  <Text style={[styles.addExtraText, { fontFamily: theme.fuiFamily, color: theme.inkSoft }]}>
-                    + Checklist
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {!idea.extras.links && (
-                <TouchableOpacity
-                  style={[styles.addExtraBtn, { borderColor: theme.line }]}
-                  onPress={() => { hapticTap(); animateLayout(); ctx.addExtra(idea.id, 'links'); }}
-                >
-                  <Text style={[styles.addExtraText, { fontFamily: theme.fuiFamily, color: theme.inkSoft }]}>
-                    + Link
-                  </Text>
-                </TouchableOpacity>
-              )}
-              {!idea.extras.sketch && (
-                <TouchableOpacity
-                  style={[styles.addExtraBtn, { borderColor: theme.line }]}
-                  onPress={() => { hapticTap(); animateLayout(); ctx.addExtra(idea.id, 'sketch'); }}
-                >
-                  <Text style={[styles.addExtraText, { fontFamily: theme.fuiFamily, color: theme.inkSoft }]}>
-                    + Sketch
-                  </Text>
-                </TouchableOpacity>
-              )}
-            </View>
-
-            <View style={{ height: 100 }} />
-          </ScrollView>
-        </View>
+          </>
+        )}
       </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    zIndex: 300,
-  },
-  sheet: {
-    flex: 1,
-  },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  doneBtn: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  toolbarRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  savedLabel: {
-    fontSize: 13,
-  },
-  menuBtn: {
-    fontSize: 20,
-    paddingHorizontal: 4,
-  },
+  overlay: { zIndex: 300 },
+  toolbar: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 18, paddingBottom: 10 },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 8 },
+  backText: { fontSize: 14 },
+  toolbarRight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  saved: { fontSize: 12, marginRight: 4 },
+  content: { paddingHorizontal: 22, paddingTop: 4 },
+  titleInput: { fontSize: 26, lineHeight: 32, letterSpacing: -0.3, minHeight: 34, padding: 0 },
+
+  metaPills: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  pill: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6 },
+  pillText: { fontSize: 12.5 },
+
+  panel: { marginTop: 10, padding: 12 },
+  panelChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  optChip: { borderWidth: 1, borderRadius: 18, paddingHorizontal: 12, paddingVertical: 6 },
+  optText: { fontSize: 12.5 },
+  panelNew: { marginTop: 10, paddingTop: 9, borderTopWidth: 1 },
+
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7, marginTop: 14 },
+  tagChip: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  tagText: { fontSize: 12.5 },
+  tagX: { fontSize: 14, lineHeight: 14, opacity: 0.6 },
+  tagInput: { fontSize: 12.5, minWidth: 74, paddingVertical: 5, padding: 0 },
+  suggestLabel: { fontSize: 11, letterSpacing: 0.3, marginBottom: 7 },
+  suggestRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  suggestChip: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 20, paddingHorizontal: 11, paddingVertical: 5 },
+
+  bodyInput: { fontSize: 16, lineHeight: 26, minHeight: 150, marginTop: 16, padding: 0 },
+
+  extras: { marginTop: 8, borderTopWidth: 1, paddingTop: 18 },
+  extrasLabel: { fontSize: 11.5, letterSpacing: 0.5 },
+  extraHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  extraTitle: { fontSize: 16 },
+  dim: { fontSize: 12 },
+  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 9 },
+  checkText: { flex: 1, fontSize: 14.5, lineHeight: 20 },
+  removeX: { fontSize: 17, lineHeight: 20, paddingHorizontal: 2 },
+  addBox: { width: 21, height: 21, borderRadius: 7, borderWidth: 1.7, borderStyle: 'dashed', marginTop: 1 },
+  addInput: { flex: 1, fontSize: 14.5, padding: 0 },
+
+  sketchRow: { flexDirection: 'row', gap: 10, marginTop: 9 },
+  sketchSlot: { flex: 1, aspectRatio: 1, borderRadius: 13, borderWidth: 1, overflow: 'hidden' },
+  sketchImg: { width: '100%', height: '100%' },
+  sketchAdd: { alignItems: 'center', justifyContent: 'center', borderStyle: 'dashed', gap: 4 },
+  sketchAddText: { fontSize: 12 },
+
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 13, paddingVertical: 11 },
+  linkText: { flex: 1, fontSize: 13.5 },
+  linkInput: { borderWidth: 1, borderStyle: 'dashed', borderRadius: 12, paddingHorizontal: 13, paddingVertical: 11, fontSize: 13.5 },
+
+  addExtras: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 20 },
+  addExtraBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 11, paddingHorizontal: 13, paddingVertical: 8 },
+  addExtraText: { fontSize: 13 },
+
   noteMenu: {
     position: 'absolute',
-    top: 54,
-    right: 16,
-    borderRadius: 12,
+    right: 18,
+    width: 188,
     borderWidth: 1,
-    zIndex: 10,
+    borderRadius: 15,
+    padding: 6,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 8,
-    minWidth: 160,
+    shadowOffset: { width: 0, height: 18 },
+    shadowOpacity: 0.18,
+    shadowRadius: 30,
+    elevation: 24,
   },
-  noteMenuItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 13,
-  },
-  noteMenuText: {
-    fontSize: 15,
-  },
-  menuDivider: {
-    height: 1,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    gap: 16,
-  },
-  titleInput: {
-    fontSize: 26,
-    lineHeight: 34,
-    textAlignVertical: 'top',
-    minHeight: 60,
-  },
-  metaChips: {
-    flexDirection: 'row',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  metaChip: {
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 1,
-  },
-  metaChipText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  panel: {
-    borderRadius: 14,
-    borderWidth: 1,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 6,
-  },
-  panelItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-  },
-  panelItemText: {
-    fontSize: 14,
-  },
-  tagsSection: {
-    gap: 8,
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-    alignItems: 'center',
-  },
-  tagChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    gap: 4,
-  },
-  tagText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  tagX: {
-    fontSize: 15,
-    lineHeight: 16,
-  },
-  tagInput: {
-    fontSize: 13,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1,
-    minWidth: 60,
-  },
-  suggestedTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    gap: 6,
-  },
-  suggestedLabel: {
-    fontSize: 12,
-  },
-  suggestedTag: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  bodyInput: {
-    fontSize: 16,
-    lineHeight: 24,
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  extrasSection: {
-    borderTopWidth: 1,
-    paddingTop: 16,
-    gap: 16,
-  },
-  extra: {
-    gap: 8,
-  },
-  extraLabel: {
-    fontSize: 11,
-    letterSpacing: 0.6,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 3,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 7,
-    borderWidth: 1.5,
-  },
-  checkText: {
-    flex: 1,
-    fontSize: 15,
-  },
-  removeBtn: {
-    fontSize: 18,
-    paddingHorizontal: 4,
-  },
-  newTaskInput: {
-    flex: 1,
-    fontSize: 14,
-    paddingHorizontal: 10,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-  },
-  linkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 3,
-    gap: 10,
-  },
-  linkText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  sketchGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  sketchThumb: {
-    width: 88,
-    height: 88,
-    borderRadius: 12,
-    borderWidth: 1,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  sketchImage: {
-    width: '100%',
-    height: '100%',
-  },
-  sketchRemove: {
-    position: 'absolute',
-    top: 4,
-    right: 4,
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    opacity: 0.8,
-  },
-  sketchRemoveText: {
-    color: '#FFF',
-    fontSize: 14,
-    lineHeight: 16,
-  },
-  sketchAdd: {
-    width: 88,
-    height: 88,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderStyle: 'dashed',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  sketchAddText: {
-    fontSize: 28,
-    fontWeight: '300',
-  },
-  addExtras: {
-    flexDirection: 'row',
-    gap: 10,
-    flexWrap: 'wrap',
-  },
-  addExtraBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 11,
-    borderWidth: 1,
-  },
-  addExtraText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  noteMenuItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10 },
+  noteMenuText: { fontSize: 14 },
 });

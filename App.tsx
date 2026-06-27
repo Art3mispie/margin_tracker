@@ -32,6 +32,7 @@ import { useTheme } from './src/theme';
 import { enableLayoutAnimations, animationsEnabled } from './src/anim';
 import { hapticTap } from './src/haptics';
 import { loadSounds } from './src/sound';
+import Icon from './src/components/Icon';
 import BottomNav from './src/components/BottomNav';
 import Today from './src/screens/Today';
 import Ideas from './src/screens/Ideas';
@@ -111,8 +112,8 @@ function AppShell() {
           accessibilityLabel="Capture a new idea"
           style={styles.fabHit}
         >
-          <Animated.View style={[styles.fab, { backgroundColor: theme.accent, transform: [{ scale: fabScale }] }]}>
-            <Text style={styles.fabText}>+</Text>
+          <Animated.View style={[styles.fab, { backgroundColor: theme.accent, shadowColor: theme.accent, transform: [{ scale: fabScale }] }]}>
+            <Icon name="plus" size={24} color="#fff" strokeWidth={2.2} />
           </Animated.View>
         </Pressable>
       )}
@@ -178,9 +179,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   loadingText: {
-    fontSize: 32,
+    fontSize: 34,
     color: '#1F303C',
-    fontStyle: 'italic',
+    fontFamily: 'Newsreader_400Regular_Italic',
   },
   fabHit: {
     position: 'absolute',

@@ -5,7 +5,8 @@ import type { AppState } from './AppContext';
 // Show notifications while the app is foregrounded too.
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
   }),

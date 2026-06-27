@@ -12,305 +12,237 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppContext } from '../AppContext';
 import { useTheme } from '../theme';
-import Checkbox from '../components/Checkbox';
+import { disp, ui } from '../fonts';
+import Icon from '../components/Icon';
+import Card from '../components/Card';
 import { animateLayout } from '../anim';
 import { hapticTap } from '../haptics';
-import type { Idea, ChecklistItem } from '../types';
-
-interface TaskItem {
-  idea: Idea;
-  task: ChecklistItem;
-  idx: number;
-}
+import type { Idea } from '../types';
 
 export default function PlanDaySheet() {
   const ctx = useContext(AppContext);
   const theme = useTheme();
+  const tk = theme.key;
   const insets = useSafeAreaInsets();
   const { state } = ctx;
-  const [looseExpanded, setLooseExpanded] = useState(false);
+  const [looseOpen, setLooseOpen] = useState(false);
 
   if (!state.taskPickerOpen) return null;
 
-  const allActive = ctx.active();
-  const now = Date.now();
+  const sorted = [...ctx.active()].sort((a, b) => b.createdAt - a.createdAt);
+  const pq = state.taskPickerSearch.trim().toLowerCase();
+  const matches = (i: Idea, text: string) =>
+    !pq || `${text} ${i.title} ${i.project || ''}`.toLowerCase().includes(pq);
 
-  const getTasks = (idea: Idea): TaskItem[] =>
-    idea.checklist
-      .map((task, idx) => ({ idea, task, idx }))
-      .filter(x => !x.task.done);
+  const groupDefs: Array<{ label: string; test: (diff: number | null) => boolean }> = [
+    { label: 'Overdue', test: d => d !== null && d < 0 },
+    { label: 'This week', test: d => d !== null && d >= 0 && d <= 7 },
+    { label: 'Anytime', test: d => d === null || d > 7 },
+  ];
 
-  const q = state.taskPickerSearch.toLowerCase();
-  const filterIdeas = (list: Idea[]) =>
-    q
-      ? list.filter(
-          i =>
-            i.title.toLowerCase().includes(q) ||
-            i.checklist.some(c => c.text.toLowerCase().includes(q))
-        )
-      : list;
-
-  const overdueIdeas = filterIdeas(
-    allActive.filter(i => i.due && i.due < now)
-  );
-  const thisWeekIdeas = filterIdeas(
-    allActive.filter(i => {
-      if (!i.due || i.due < now) return false;
-      return i.due <= now + 7 * 86400000;
+  const groups = groupDefs
+    .map(g => {
+      const ideas = sorted
+        .map(i => {
+          const di = i.due ? ctx.dueInfo(i.due) : null;
+          if (!g.test(di ? di.diff : null)) return null;
+          const tasks = i.checklist
+            .map((c, idx) => ({ c, idx }))
+            .filter(o => !o.c.done && matches(i, o.c.text));
+          if (!tasks.length) return null;
+          return { idea: i, di, tasks };
+        })
+        .filter(Boolean) as Array<{ idea: Idea; di: ReturnType<typeof ctx.dueInfo>; tasks: Array<{ c: Idea['checklist'][number]; idx: number }> }>;
+      const count = ideas.reduce((n, x) => n + x.tasks.length, 0);
+      return { label: g.label, ideas, count };
     })
-  );
-  const anytimeIdeas = filterIdeas(
-    allActive.filter(i => !i.due || i.due > now + 7 * 86400000)
-  );
-  const noTaskIdeas = filterIdeas(
-    allActive.filter(i => i.checklist.length === 0)
-  );
+    .filter(g => g.ideas.length > 0);
 
-  const todayCount = allActive.reduce((acc, idea) => {
-    return acc + idea.checklist.filter(c => c.today && !c.done).length;
-  }, 0);
+  const looseIdeas = sorted.filter(i => {
+    const openN = i.checklist.filter(c => !c.done).length;
+    return openN === 0 && (!pq || i.title.toLowerCase().includes(pq) || (i.project || '').toLowerCase().includes(pq));
+  });
 
-  const renderTaskGroup = (title: string, ideas: Idea[]) => {
-    const hasTasks = ideas.some(i => i.checklist.some(c => !c.done));
-    if (!hasTasks && ideas.length === 0) return null;
-    const ideasWithTasks = ideas.filter(i => getTasks(i).length > 0);
-    if (ideasWithTasks.length === 0) return null;
-
-    return (
-      <View style={styles.group}>
-        <Text style={[styles.groupLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-          {title.toUpperCase()}
-        </Text>
-        {ideasWithTasks.map(idea => (
-          <View key={idea.id} style={[styles.ideaBlock, { backgroundColor: theme.surface, borderColor: theme.line }]}>
-            <Text style={[styles.ideaTitle, { fontFamily: theme.fuiFamily, color: theme.ink }]} numberOfLines={1}>
-              {idea.title}
-            </Text>
-            {getTasks(idea).map(({ task, idx }) => {
-              const isToday = !!task.today;
-              return (
-                <View key={idx} style={styles.taskRow}>
-                  <Checkbox
-                    checked={isToday}
-                    onToggle={() => ctx.setTaskToday(idea.id, idx, !isToday)}
-                    accent={theme.accent}
-                    line={theme.inkFaint}
-                    size={22}
-                  />
-                  <Text style={[
-                    styles.taskText,
-                    { fontFamily: theme.fuiFamily, color: isToday ? theme.ink : theme.inkSoft },
-                  ]}>
-                    {task.text}
-                  </Text>
-                </View>
-              );
-            })}
-          </View>
-        ))}
-      </View>
-    );
-  };
+  const chosen = ctx.active().reduce((n, i) => n + i.checklist.filter(c => c.today).length, 0);
+  const planSelectedLabel = chosen
+    ? `${chosen} task${chosen === 1 ? '' : 's'} chosen for today`
+    : 'Nothing chosen for today yet';
+  const empty = groups.length === 0 && looseIdeas.length === 0;
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay]}>
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={ctx.closeTaskPicker} />
       <KeyboardAvoidingView
-        style={StyleSheet.absoluteFill}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={[styles.sheet, { backgroundColor: theme.bg, top: insets.top + 8 }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={[
-          styles.sheet,
-          { backgroundColor: theme.bg, paddingTop: insets.top },
-        ]}>
-          {/* Toolbar */}
-          <View style={[styles.toolbar, { borderBottomColor: theme.line }]}>
-            <View style={styles.toolbarLeft}>
-              <Text style={[styles.sheetTitle, { fontFamily: theme.fdispFamily, color: theme.ink }]}>
-                Plan your day
-              </Text>
-              {todayCount > 0 && (
-                <Text style={[styles.taskCount, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                  {todayCount} chosen
-                </Text>
-              )}
-            </View>
-            <TouchableOpacity
-              style={[styles.doneBtn, { backgroundColor: theme.accent }]}
-              onPress={ctx.closeTaskPicker}
-            >
-              <Text style={[styles.doneBtnText, { fontFamily: theme.fuiFamily }]}>
-                Done
-              </Text>
-            </TouchableOpacity>
-          </View>
+        <View style={[styles.handle, { backgroundColor: theme.line }]} />
 
-          {/* Search */}
-          <View style={[styles.searchBox, { backgroundColor: theme.surface, borderColor: theme.line, margin: 16, marginBottom: 0 }]}>
-            <Text style={{ color: theme.inkFaint, fontSize: 15 }}>🔍</Text>
+        <View style={styles.header}>
+          <View>
+            <Text style={[styles.title, { fontFamily: disp(tk), color: theme.ink }]}>Plan your day</Text>
+            <Text style={[styles.subtitle, { fontFamily: ui(600), color: theme.accent }]}>{planSelectedLabel}</Text>
+          </View>
+          <TouchableOpacity onPress={ctx.closeTaskPicker} hitSlop={8}>
+            <Text style={[styles.done, { fontFamily: ui(600), color: theme.accent }]}>Done</Text>
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.searchWrap}>
+          <Card radius={13} style={styles.searchBox}>
+            <Icon name="search" size={17} color={theme.inkFaint} strokeWidth={1.8} />
             <TextInput
-              style={[styles.searchInput, { fontFamily: theme.fuiFamily, color: theme.ink }]}
-              placeholder="Search tasks…"
+              style={[styles.searchInput, { fontFamily: ui(), color: theme.ink }]}
+              placeholder="Search tasks, ideas, projects"
               placeholderTextColor={theme.inkFaint}
               value={state.taskPickerSearch}
               onChangeText={text => ctx.dispatch({ type: 'SET_TASK_PICKER_SEARCH', text })}
             />
-          </View>
-
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
-          >
-            {renderTaskGroup('Overdue', overdueIdeas)}
-            {renderTaskGroup('This week', thisWeekIdeas)}
-            {renderTaskGroup('Anytime', anytimeIdeas)}
-
-            {/* Ideas without tasks */}
-            {noTaskIdeas.length > 0 && (
-              <TouchableOpacity
-                style={styles.looseToggle}
-                onPress={() => { hapticTap(); animateLayout(); setLooseExpanded(!looseExpanded); }}
-              >
-                <Text style={[styles.looseLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                  Ideas without tasks · {noTaskIdeas.length}
-                </Text>
-                <Text style={{ color: theme.inkFaint }}>{looseExpanded ? '▲' : '▼'}</Text>
-              </TouchableOpacity>
-            )}
-            {looseExpanded && noTaskIdeas.map(idea => (
-              <TouchableOpacity
-                key={idea.id}
-                style={[styles.looseIdea, { backgroundColor: theme.surface, borderColor: theme.line }]}
-                onPress={() => ctx.openNote(idea.id)}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.looseIdeaTitle, { fontFamily: theme.fuiFamily, color: theme.inkSoft }]} numberOfLines={1}>
-                  {idea.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-
-            <View style={{ height: 80 }} />
-          </ScrollView>
+          </Card>
         </View>
+
+        <ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingHorizontal: 22, paddingBottom: insets.bottom + 26 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {groups.map(g => (
+            <View key={g.label} style={{ marginTop: 14 }}>
+              <View style={styles.groupHead}>
+                <Text style={[styles.groupLabel, { fontFamily: ui(700), color: theme.inkFaint }]}>
+                  {g.label.toUpperCase()}
+                </Text>
+                <Text style={[styles.groupCount, { fontFamily: ui(), color: theme.inkFaint }]}>
+                  {g.count} task{g.count === 1 ? '' : 's'}
+                </Text>
+              </View>
+              {g.ideas.map(({ idea, di, tasks }) => (
+                <Card key={idea.id} radius={14} clip style={{ marginBottom: 10 }}>
+                  <TouchableOpacity style={styles.ideaHead} onPress={() => ctx.openReader(idea.id)} activeOpacity={0.7}>
+                    <Text style={[styles.ideaTitle, { fontFamily: disp(tk), color: theme.ink }]} numberOfLines={1}>
+                      {idea.title || 'Untitled idea'}
+                    </Text>
+                    {di && (
+                      <Text style={[styles.ideaDue, { fontFamily: ui(700), color: di.overdue ? '#C0492F' : theme.accent }]}>
+                        {di.label}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                  {tasks.map(({ c, idx }) => (
+                    <TouchableOpacity
+                      key={idx}
+                      style={[styles.taskRow, { borderTopColor: theme.line, backgroundColor: c.today ? theme.accentSoft : 'transparent' }]}
+                      activeOpacity={0.7}
+                      onPress={() => { hapticTap(); ctx.setTaskToday(idea.id, idx, !c.today); }}
+                    >
+                      <View
+                        style={[
+                          styles.taskBox,
+                          { borderColor: c.today ? theme.accent : theme.line, backgroundColor: c.today ? theme.accent : 'transparent' },
+                        ]}
+                      >
+                        {c.today && <Icon name="check" size={13} color="#fff" strokeWidth={3} />}
+                      </View>
+                      <Text style={[styles.taskText, { fontFamily: ui(), color: theme.ink }]}>{c.text}</Text>
+                      {c.today && (
+                        <View style={[styles.todayTag, { backgroundColor: theme.accentSoft }]}>
+                          <Text style={[styles.todayTagText, { fontFamily: ui(700), color: theme.accentInk }]}>TODAY</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </Card>
+              ))}
+            </View>
+          ))}
+
+          {looseIdeas.length > 0 && (
+            <View style={[styles.looseSection, { borderTopColor: theme.line }]}>
+              <TouchableOpacity
+                style={styles.looseHead}
+                onPress={() => { hapticTap(); animateLayout(); setLooseOpen(!looseOpen); }}
+              >
+                <Text style={[styles.groupLabel, { fontFamily: ui(700), color: theme.inkFaint }]}>
+                  IDEAS WITHOUT TASKS · {looseIdeas.length}
+                </Text>
+                <Text style={[styles.looseToggle, { fontFamily: ui(600), color: theme.accent }]}>
+                  {looseOpen ? 'Hide' : 'Show'}
+                </Text>
+              </TouchableOpacity>
+              <Text style={[styles.looseHint, { fontFamily: ui(), color: theme.inkFaint }]}>
+                So nothing slips — open one to give it a next step.
+              </Text>
+              {looseOpen &&
+                looseIdeas.map(idea => (
+                  <TouchableOpacity
+                    key={idea.id}
+                    activeOpacity={0.7}
+                    onPress={() => ctx.openReader(idea.id)}
+                    style={{ marginTop: 8 }}
+                  >
+                    <Card radius={12} style={styles.looseRow}>
+                      <Text style={[styles.looseTitle, { fontFamily: ui(), color: theme.ink }]} numberOfLines={1}>
+                        {idea.title || 'Untitled idea'}
+                      </Text>
+                      <Text style={[styles.looseDate, { fontFamily: ui(), color: theme.inkFaint }]}>
+                        {ctx.fmtShort(idea.createdAt)}
+                      </Text>
+                      <Icon name="chevronRight" size={15} color={theme.inkFaint} strokeWidth={1.8} />
+                    </Card>
+                  </TouchableOpacity>
+                ))}
+            </View>
+          )}
+
+          {empty && (
+            <Text style={[styles.emptyText, { fontFamily: ui(), color: theme.inkFaint }]}>
+              {pq ? `Nothing matches "${state.taskPickerSearch.trim()}".` : 'No ideas yet — capture one and add a few steps.'}
+            </Text>
+          )}
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    zIndex: 250,
-  },
+  overlay: { zIndex: 250 },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(28,26,20,0.34)' },
   sheet: {
-    flex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    overflow: 'hidden',
   },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-  },
-  toolbarLeft: {
-    gap: 2,
-  },
-  sheetTitle: {
-    fontSize: 20,
-  },
-  taskCount: {
-    fontSize: 13,
-  },
-  doneBtn: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 11,
-  },
-  doneBtnText: {
-    color: '#FFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: 15,
-    padding: 0,
-  },
-  scroll: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: 16,
-    gap: 20,
-  },
-  group: {
-    gap: 10,
-  },
-  groupLabel: {
-    fontSize: 11,
-    letterSpacing: 0.8,
-  },
-  ideaBlock: {
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 12,
-    gap: 8,
-  },
-  ideaTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginBottom: 2,
-  },
-  taskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 3,
-  },
-  checkbox: {
-    width: 22,
-    height: 22,
-    borderRadius: 7,
-    borderWidth: 1.5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  checkMark: {
-    color: '#FFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  taskText: {
-    flex: 1,
-    fontSize: 14,
-  },
-  looseToggle: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 10,
-  },
-  looseLabel: {
-    fontSize: 14,
-  },
-  looseIdea: {
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-  },
-  looseIdeaTitle: {
-    fontSize: 14,
-  },
+  handle: { width: 38, height: 4, borderRadius: 3, alignSelf: 'center', marginTop: 8, marginBottom: 4 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 4 },
+  title: { fontSize: 20, lineHeight: 22 },
+  subtitle: { fontSize: 12.5, marginTop: 3 },
+  done: { fontSize: 14, paddingTop: 4 },
+  searchWrap: { paddingHorizontal: 22, paddingTop: 12 },
+  searchBox: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 11 },
+  searchInput: { flex: 1, fontSize: 14.5, padding: 0 },
+  groupHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between', paddingHorizontal: 2, paddingBottom: 9 },
+  groupLabel: { fontSize: 11.5, letterSpacing: 0.5 },
+  groupCount: { fontSize: 12 },
+  ideaHead: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 14, paddingTop: 11, paddingBottom: 9 },
+  ideaTitle: { flex: 1, fontSize: 15, lineHeight: 19 },
+  ideaDue: { fontSize: 11 },
+  taskRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingHorizontal: 14, paddingVertical: 10, borderTopWidth: 1 },
+  taskBox: { width: 21, height: 21, borderRadius: 7, borderWidth: 1.7, alignItems: 'center', justifyContent: 'center', marginTop: 1 },
+  taskText: { flex: 1, fontSize: 14, lineHeight: 19 },
+  todayTag: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 12 },
+  todayTagText: { fontSize: 10, letterSpacing: 0.3 },
+  looseSection: { marginTop: 18, borderTopWidth: 1, paddingTop: 15 },
+  looseHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 2 },
+  looseToggle: { fontSize: 12.5 },
+  looseHint: { fontSize: 12, marginTop: 5, marginHorizontal: 2, lineHeight: 17 },
+  looseRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 14, paddingVertical: 12 },
+  looseTitle: { flex: 1, fontSize: 14 },
+  looseDate: { fontSize: 11.5 },
+  emptyText: { textAlign: 'center', fontSize: 13.5, lineHeight: 20, paddingVertical: 34, paddingHorizontal: 18 },
 });

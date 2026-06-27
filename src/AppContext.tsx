@@ -642,10 +642,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   const metaLine = useCallback((idea: Idea): string => {
     const parts: string[] = [];
-    if (idea.tags.length) parts.push(idea.tags.map(t => `#${t}`).join(' '));
     const open = idea.checklist.filter(c => !c.done).length;
-    if (open > 0) parts.push(`${open} open step${open > 1 ? 's' : ''}`);
-    return parts.join(' · ');
+    if (open > 0) parts.push(`${open} step${open === 1 ? '' : 's'} open`);
+    if (idea.tags.length) parts.push(idea.tags.map(t => `#${t}`).join(' '));
+    return parts.join('  ·  ');
   }, []);
 
   // ── Actions ────────────────────────────────────────────────────────────────

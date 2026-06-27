@@ -1,344 +1,199 @@
 import React, { useContext } from 'react';
-import {
-  Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
 import { AppContext } from '../AppContext';
 import { useTheme } from '../theme';
+import { disp, ui } from '../fonts';
+import Icon from '../components/Icon';
+import Card from '../components/Card';
 import Checkbox from '../components/Checkbox';
 import { hapticTap } from '../haptics';
 
 export default function NoteReader() {
   const ctx = useContext(AppContext);
   const theme = useTheme();
+  const tk = theme.key;
   const insets = useSafeAreaInsets();
   const { state } = ctx;
 
-  const idea = state.readerId !== null
-    ? state.ideas.find(i => i.id === state.readerId)
-    : null;
-
+  const idea = state.readerId !== null ? state.ideas.find(i => i.id === state.readerId) : null;
   if (!idea) return null;
 
-  const due = idea.due ? ctx.dueInfo(idea.due) : null;
+  const di = idea.due ? ctx.dueInfo(idea.due) : null;
+  const createdToday = ctx.dayKey(idea.createdAt) === ctx.dayKey(Date.now());
+  const dateLabel = createdToday ? 'Captured today' : `Captured ${ctx.fmtShort(idea.createdAt)}`;
+  const hasChecklist = idea.checklist.length > 0;
+  const hasLinks = idea.links.length > 0;
+  const hasSketches = idea.sketches.length > 0;
 
   return (
-    <View style={[StyleSheet.absoluteFill, styles.overlay]}>
-      {/* Backdrop */}
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={ctx.closeReader}
-      />
-
-      <View style={[
-        styles.sheet,
-        {
-          backgroundColor: theme.bg,
-          paddingTop: insets.top,
-        },
-      ]}>
-        {/* Toolbar */}
-        <View style={[styles.toolbar, { borderBottomColor: theme.line }]}>
-          <TouchableOpacity style={styles.backBtn} onPress={ctx.closeReader}>
-            <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
-              <Path d="M15 18l-6-6 6-6" stroke={theme.accent} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-            <Text style={[styles.backText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-              Back
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={ctx.editFromReader}>
-            <Text style={[styles.editBtn, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-              Edit
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <ScrollView
-          style={styles.scroll}
-          contentContainerStyle={styles.content}
-          showsVerticalScrollIndicator={false}
+    <View style={[StyleSheet.absoluteFill, styles.overlay, { backgroundColor: theme.bg }]}>
+      <View style={[styles.toolbar, { paddingTop: insets.top + 6 }]}>
+        <TouchableOpacity style={styles.backBtn} onPress={ctx.closeReader} hitSlop={6}>
+          <Icon name="chevronLeft" size={18} color={theme.inkSoft} strokeWidth={1.9} />
+          <Text style={[styles.backText, { fontFamily: ui(600), color: theme.inkSoft }]}>Back</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.editBtn, { borderColor: theme.line, backgroundColor: theme.surface }]}
+          onPress={ctx.editFromReader}
         >
-          {/* Title */}
-          <Text style={[styles.title, { fontFamily: theme.fdispFamily, color: theme.ink }]}>
-            {idea.title}
-          </Text>
+          <Icon name="pencil" size={15} color={theme.accent} strokeWidth={1.8} />
+          <Text style={[styles.editText, { fontFamily: ui(600), color: theme.ink }]}>Edit</Text>
+        </TouchableOpacity>
+      </View>
 
-          {/* Meta row */}
-          <View style={styles.metaRow}>
-            <Text style={[styles.metaDate, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-              {ctx.fmtShort(idea.createdAt)}
-            </Text>
-            {idea.project && (
-              <View style={[styles.chip, { backgroundColor: theme.accentSoft }]}>
-                <Text style={[styles.chipText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                  {idea.project}
-                </Text>
-              </View>
-            )}
-            {due && (
-              <View style={[
-                styles.chip,
-                { backgroundColor: due.overdue ? '#FEE2E2' : theme.accentSoft }
-              ]}>
-                <Text style={[
-                  styles.chipText,
-                  { fontFamily: theme.fuiFamily, color: due.overdue ? '#DC2626' : theme.accent }
-                ]}>
-                  {due.label}
-                </Text>
-              </View>
-            )}
-          </View>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={[styles.content, { paddingBottom: insets.bottom + 48 }]}
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={[styles.title, { fontFamily: disp(tk), color: theme.ink }]}>
+          {idea.title || 'Untitled idea'}
+        </Text>
 
-          {/* Tags */}
-          {idea.tags.length > 0 && (
-            <View style={styles.tagsRow}>
-              {idea.tags.map(tag => (
-                <View key={tag} style={[styles.tagChip, { backgroundColor: theme.accentSoft }]}>
-                  <Text style={[styles.tagText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                    #{tag}
-                  </Text>
-                </View>
-              ))}
+        <View style={styles.metaRow}>
+          <Text style={[styles.metaDate, { fontFamily: ui(), color: theme.inkFaint }]}>{dateLabel}</Text>
+          {!!idea.project && (
+            <View style={[styles.metaChip, { backgroundColor: theme.accentSoft }]}>
+              <Icon name="folder" size={12} color={theme.accentInk} strokeWidth={1.8} />
+              <Text style={[styles.metaChipText, { fontFamily: ui(600), color: theme.accentInk }]}>{idea.project}</Text>
             </View>
           )}
-
-          {/* Body */}
-          {idea.body ? (
-            <Text style={[styles.body, { fontFamily: theme.fuiFamily, color: theme.inkSoft }]}>
-              {idea.body}
-            </Text>
-          ) : null}
-
-          {/* Checklist */}
-          {idea.extras.checklist && idea.checklist.length > 0 && (
-            <View style={[styles.section, { borderColor: theme.line }]}>
-              <Text style={[styles.sectionLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                CHECKLIST
+          {di && (
+            <View style={[styles.metaChip, { backgroundColor: di.overdue ? 'rgba(192,73,47,0.1)' : theme.accentSoft }]}>
+              <Icon name="clock" size={12} color={di.overdue ? '#C0492F' : theme.accentInk} strokeWidth={1.8} />
+              <Text style={[styles.metaChipText, { fontFamily: ui(600), color: di.overdue ? '#C0492F' : theme.accentInk }]}>
+                {di.label}
               </Text>
+            </View>
+          )}
+        </View>
+
+        {idea.tags.length > 0 && (
+          <View style={styles.tagsRow}>
+            {idea.tags.map(tag => (
+              <View key={tag} style={[styles.tagChip, { backgroundColor: theme.accentSoft }]}>
+                <Text style={[styles.tagText, { fontFamily: ui(600), color: theme.accentInk }]}>#{tag}</Text>
+              </View>
+            ))}
+          </View>
+        )}
+
+        {!!idea.body.trim() && (
+          <Text style={[styles.body, { fontFamily: ui(), color: theme.inkSoft }]}>{idea.body}</Text>
+        )}
+
+        {hasChecklist && (
+          <View style={{ marginTop: 22 }}>
+            <Text style={[styles.sectionTitle, { fontFamily: disp(tk), color: theme.ink }]}>Tasks</Text>
+            <Card radius={14} clip>
               {idea.checklist.map((item, idx) => (
-                <View key={idx} style={styles.checkRow}>
+                <View
+                  key={idx}
+                  style={[styles.checkRow, idx > 0 && { borderTopWidth: 1, borderTopColor: theme.line }]}
+                >
                   <Checkbox
                     checked={item.done}
                     onToggle={() => ctx.toggleChk(idea.id, idx)}
                     accent={theme.accent}
                     line={theme.line}
-                    size={20}
+                    size={21}
                     successOnCheck
                   />
-                  <Text style={[
-                    styles.checkText,
-                    { fontFamily: theme.fuiFamily, color: item.done ? theme.inkFaint : theme.ink },
-                    item.done && styles.checkDone,
-                  ]}>
+                  <Text
+                    style={[
+                      styles.checkText,
+                      {
+                        fontFamily: ui(),
+                        color: item.done ? theme.inkFaint : theme.ink,
+                        textDecorationLine: item.done ? 'line-through' : 'none',
+                      },
+                    ]}
+                  >
                     {item.text}
                   </Text>
-                  {!item.done && (
-                    <TouchableOpacity
-                      onPress={() => { hapticTap(); ctx.setTaskToday(idea.id, idx, !item.today); }}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                      style={[
-                        styles.todayBadge,
-                        item.today
-                          ? { backgroundColor: theme.accent }
-                          : { backgroundColor: 'transparent', borderWidth: 1, borderColor: theme.line },
-                      ]}
-                    >
-                      <Text style={[
-                        styles.todayText,
-                        { fontFamily: theme.fuiFamily, color: item.today ? '#FFF' : theme.inkSoft },
-                      ]}>
-                        Today
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    onPress={() => { hapticTap(); ctx.setTaskToday(idea.id, idx, !item.today); }}
+                    style={[
+                      styles.todayPill,
+                      {
+                        borderColor: item.today ? theme.accent : theme.line,
+                        backgroundColor: item.today ? theme.accentSoft : 'transparent',
+                      },
+                    ]}
+                  >
+                    <Icon name="sun" size={12} color={item.today ? theme.accentInk : theme.inkSoft} strokeWidth={2} />
+                    <Text style={[styles.todayText, { fontFamily: ui(600), color: item.today ? theme.accentInk : theme.inkSoft }]}>
+                      Today
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               ))}
-            </View>
-          )}
+            </Card>
+          </View>
+        )}
 
-          {/* Links */}
-          {idea.extras.links && idea.links.length > 0 && (
-            <View style={[styles.section, { borderColor: theme.line }]}>
-              <Text style={[styles.sectionLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                LINKS
-              </Text>
+        {hasLinks && (
+          <View style={{ marginTop: 20 }}>
+            <Text style={[styles.sectionTitle, { fontFamily: disp(tk), color: theme.ink }]}>Links</Text>
+            <View style={{ gap: 7 }}>
               {idea.links.map((link, idx) => (
-                <View key={idx} style={styles.linkRow}>
-                  <Text style={[styles.linkText, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
+                <Card key={idx} radius={12} style={styles.linkRow}>
+                  <Icon name="link" size={15} color={theme.accent} strokeWidth={1.8} />
+                  <Text style={[styles.linkText, { fontFamily: ui(), color: theme.ink }]} numberOfLines={1}>
                     {link.label}
                   </Text>
-                </View>
+                </Card>
               ))}
             </View>
-          )}
+          </View>
+        )}
 
-          {/* Sketches */}
-          {idea.extras.sketch && idea.sketches.length > 0 && (
-            <View style={[styles.section, { borderColor: theme.line }]}>
-              <Text style={[styles.sectionLabel, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-                SKETCHES
-              </Text>
-              <View style={styles.sketchGrid}>
-                {idea.sketches.map((uri, idx) => (
-                  <Image
-                    key={idx}
-                    source={{ uri }}
-                    style={[styles.sketchImage, { borderColor: theme.line }]}
-                    resizeMode="cover"
-                  />
-                ))}
-              </View>
+        {hasSketches && (
+          <View style={{ marginTop: 20 }}>
+            <Text style={[styles.sectionTitle, { fontFamily: disp(tk), color: theme.ink }]}>Sketches</Text>
+            <View style={styles.sketchGrid}>
+              {idea.sketches.map((uri, idx) => (
+                <Image key={idx} source={{ uri }} style={[styles.sketch, { borderColor: theme.line }]} resizeMode="cover" />
+              ))}
             </View>
-          )}
-
-          <View style={{ height: 80 }} />
-        </ScrollView>
-      </View>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    zIndex: 200,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-  },
-  sheet: {
-    ...StyleSheet.absoluteFillObject,
-  },
+  overlay: { zIndex: 200 },
   toolbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 18,
+    paddingBottom: 10,
   },
-  backBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  backText: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  editBtn: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 20,
-    gap: 14,
-  },
-  title: {
-    fontSize: 26,
-    lineHeight: 34,
-  },
-  metaRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    flexWrap: 'wrap',
-  },
-  metaDate: {
-    fontSize: 13,
-  },
-  chip: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 20,
-  },
-  chipText: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  tagsRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
-  },
-  tagChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  tagText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  body: {
-    fontSize: 16,
-    lineHeight: 24,
-  },
-  section: {
-    borderTopWidth: 1,
-    paddingTop: 14,
-    gap: 10,
-  },
-  sectionLabel: {
-    fontSize: 11,
-    letterSpacing: 0.6,
-  },
-  checkRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    paddingVertical: 3,
-  },
-  checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 7,
-    borderWidth: 1.5,
-  },
-  checkText: {
-    flex: 1,
-    fontSize: 15,
-  },
-  checkDone: {
-    textDecorationLine: 'line-through',
-    opacity: 0.6,
-  },
-  todayBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 10,
-  },
-  todayText: {
-    fontSize: 11,
-    fontWeight: '600',
-  },
-  linkRow: {
-    paddingVertical: 4,
-  },
-  linkText: {
-    fontSize: 14,
-    textDecorationLine: 'underline',
-  },
-  sketchGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  sketchImage: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
+  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 6, paddingHorizontal: 8 },
+  backText: { fontSize: 14 },
+  editBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, borderWidth: 1, borderRadius: 11, paddingHorizontal: 14, paddingVertical: 8 },
+  editText: { fontSize: 13.5 },
+  content: { paddingHorizontal: 22, paddingTop: 4 },
+  title: { fontSize: 26, lineHeight: 32, letterSpacing: -0.3 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginTop: 12 },
+  metaDate: { fontSize: 12.5 },
+  metaChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 11, paddingVertical: 5, borderRadius: 20 },
+  metaChipText: { fontSize: 12.5 },
+  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginTop: 12 },
+  tagChip: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 20 },
+  tagText: { fontSize: 12.5 },
+  body: { fontSize: 16, lineHeight: 26, marginTop: 18 },
+  sectionTitle: { fontSize: 16, marginBottom: 8 },
+  checkRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 11, paddingVertical: 12, paddingHorizontal: 14 },
+  checkText: { flex: 1, fontSize: 14.5, lineHeight: 20 },
+  todayPill: { flexDirection: 'row', alignItems: 'center', gap: 5, borderWidth: 1, borderRadius: 18, paddingHorizontal: 9, paddingVertical: 5 },
+  todayText: { fontSize: 11.5 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 13, paddingVertical: 11 },
+  linkText: { flex: 1, fontSize: 13.5 },
+  sketchGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  sketch: { width: 104, height: 104, borderRadius: 13, borderWidth: 1 },
 });

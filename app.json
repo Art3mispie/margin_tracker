@@ -38,7 +38,8 @@
         {
           "color": "#2C6DA8"
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

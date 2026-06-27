@@ -15,6 +15,8 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppContext } from '../AppContext';
 import { useTheme } from '../theme';
+import { disp, ui } from '../fonts';
+import Icon from '../components/Icon';
 import { hapticTap } from '../haptics';
 import { playSound } from '../sound';
 
@@ -24,35 +26,28 @@ const SHEET_HEIGHT = SCREEN_H * 0.65;
 export default function CaptureSheet() {
   const ctx = useContext(AppContext);
   const theme = useTheme();
+  const tk = theme.key;
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SHEET_HEIGHT)).current;
   const { state } = ctx;
-  // Keep the sheet mounted through its close animation instead of vanishing.
   const [mounted, setMounted] = useState(false);
   const [newTag, setNewTag] = useState('');
 
-  const allTags = Array.from(
-    new Set([...state.captureTags, ...ctx.active().flatMap(i => i.tags)])
-  );
+  // Suggested tags: current selection first, then the most-used tags.
+  const tagMap: Record<string, number> = {};
+  ctx.active().forEach(i => i.tags.forEach(t => (tagMap[t] = (tagMap[t] || 0) + 1)));
+  const top = Object.keys(tagMap).sort((a, b) => tagMap[b] - tagMap[a]);
+  const chipTags = Array.from(new Set([...state.captureTags, ...top])).slice(0, 12);
 
   useEffect(() => {
     if (state.captureOpen) {
       setMounted(true);
       setNewTag('');
-      Animated.spring(translateY, {
-        toValue: 0,
-        useNativeDriver: true,
-        tension: 65,
-        friction: 11,
-      }).start();
+      Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
     } else if (mounted) {
-      Animated.timing(translateY, {
-        toValue: SHEET_HEIGHT,
-        duration: 240,
-        useNativeDriver: true,
-      }).start(({ finished }) => {
-        if (finished) setMounted(false);
-      });
+      Animated.timing(translateY, { toValue: SHEET_HEIGHT, duration: 240, useNativeDriver: true }).start(
+        ({ finished }) => finished && setMounted(false)
+      );
     }
   }, [state.captureOpen]);
 
@@ -60,25 +55,12 @@ export default function CaptureSheet() {
     PanResponder.create({
       onMoveShouldSetPanResponder: (_, gs) => Math.abs(gs.dy) > 8,
       onPanResponderMove: (_, gs) => {
-        if (gs.dy > 0) {
-          translateY.setValue(gs.dy);
-        } else if (gs.dy < -60) {
-          // Swipe up — expand
-        }
+        if (gs.dy > 0) translateY.setValue(gs.dy);
       },
       onPanResponderRelease: (_, gs) => {
-        if (gs.dy < -60) {
-          ctx.expandQuick();
-        } else if (gs.dy > 80) {
-          ctx.closeCapture();
-        } else {
-          Animated.spring(translateY, {
-            toValue: 0,
-            useNativeDriver: true,
-            tension: 65,
-            friction: 11,
-          }).start();
-        }
+        if (gs.dy < -60) ctx.expandQuick();
+        else if (gs.dy > 80) ctx.closeCapture();
+        else Animated.spring(translateY, { toValue: 0, useNativeDriver: true, tension: 65, friction: 11 }).start();
       },
     })
   ).current;
@@ -94,21 +76,13 @@ export default function CaptureSheet() {
   };
 
   const handleSave = () => {
-    if (hasText) {
-      hapticTap();
-      playSound('save');
-    }
+    if (hasText) { hapticTap(); playSound('save'); }
     ctx.saveCapture();
   };
 
   return (
     <View style={[StyleSheet.absoluteFill, styles.overlay]} pointerEvents="box-none">
-      {/* Backdrop */}
-      <TouchableOpacity
-        style={styles.backdrop}
-        activeOpacity={1}
-        onPress={ctx.closeCapture}
-      />
+      <TouchableOpacity style={styles.backdrop} activeOpacity={1} onPress={ctx.closeCapture} />
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'position' : undefined}
@@ -118,36 +92,22 @@ export default function CaptureSheet() {
         <Animated.View
           style={[
             styles.sheet,
-            {
-              backgroundColor: theme.surface,
-              paddingBottom: insets.bottom + 16,
-              transform: [{ translateY }],
-            },
+            { backgroundColor: theme.bg, paddingBottom: insets.bottom + 16, transform: [{ translateY }] },
           ]}
         >
-          {/* Handle */}
           <View style={styles.handleArea} {...panResponder.panHandlers}>
             <View style={[styles.handle, { backgroundColor: theme.line }]} />
           </View>
 
-          {/* Header */}
           <View style={styles.header}>
-            <Text style={[styles.headerTitle, { fontFamily: theme.fuiFamily, color: theme.ink }]}>
-              Quick capture
-            </Text>
-            <TouchableOpacity onPress={ctx.closeCapture}>
-              <Text style={[styles.cancelBtn, { fontFamily: theme.fuiFamily, color: theme.accent }]}>
-                Cancel
-              </Text>
+            <Text style={[styles.headerTitle, { fontFamily: disp(tk), color: theme.ink }]}>Quick capture</Text>
+            <TouchableOpacity onPress={ctx.closeCapture} hitSlop={8}>
+              <Text style={[styles.cancel, { fontFamily: ui(), color: theme.inkFaint }]}>Cancel</Text>
             </TouchableOpacity>
           </View>
 
-          {/* Text area */}
           <TextInput
-            style={[
-              styles.textarea,
-              { fontFamily: theme.fdispFamily, color: theme.ink },
-            ]}
+            style={[styles.textarea, { fontFamily: disp(tk), color: theme.ink }]}
             placeholder="What's the idea? Just start typing…"
             placeholderTextColor={theme.inkFaint}
             value={state.captureText}
@@ -157,7 +117,6 @@ export default function CaptureSheet() {
             textAlignVertical="top"
           />
 
-          {/* Tags */}
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
@@ -165,34 +124,22 @@ export default function CaptureSheet() {
             contentContainerStyle={styles.tagsContent}
             keyboardShouldPersistTaps="handled"
           >
-            {allTags.map(tag => {
-              const selected = state.captureTags.includes(tag);
+            {chipTags.map(tag => {
+              const active = state.captureTags.includes(tag);
               return (
                 <TouchableOpacity
                   key={tag}
-                  style={[
-                    styles.tagChip,
-                    {
-                      backgroundColor: selected ? theme.accent : theme.accentSoft,
-                      borderColor: theme.line,
-                    },
-                  ]}
+                  style={[styles.chip, { borderColor: active ? theme.accent : theme.line, backgroundColor: active ? theme.accent : theme.surface }]}
                   onPress={() => ctx.toggleCaptureTag(tag)}
                 >
-                  <Text style={[
-                    styles.tagText,
-                    { fontFamily: theme.fuiFamily, color: selected ? '#FFF' : theme.accent },
-                  ]}>
-                    #{tag}
-                  </Text>
+                  <Text style={[styles.chipText, { fontFamily: ui(600), color: active ? '#fff' : theme.inkSoft }]}>#{tag}</Text>
                 </TouchableOpacity>
               );
             })}
-            {/* Custom tag input */}
             <View style={[styles.newTagChip, { borderColor: theme.line }]}>
-              <Text style={[styles.newTagHash, { color: theme.inkFaint }]}>#</Text>
+              <Icon name="plus" size={13} color={theme.inkFaint} strokeWidth={2.2} />
               <TextInput
-                style={[styles.newTagInput, { fontFamily: theme.fuiFamily, color: theme.ink }]}
+                style={[styles.newTagInput, { fontFamily: ui(), color: theme.ink }]}
                 placeholder="tag"
                 placeholderTextColor={theme.inkFaint}
                 value={newTag}
@@ -205,28 +152,19 @@ export default function CaptureSheet() {
             </View>
           </ScrollView>
 
-          {/* Swipe hint */}
-          <Text style={[styles.swipeHint, { fontFamily: theme.fuiFamily, color: theme.inkFaint }]}>
-            ↑ Swipe up for the full editor
-          </Text>
-
-          {/* Save button */}
           <TouchableOpacity
-            style={[
-              styles.saveBtn,
-              { backgroundColor: hasText ? theme.accent : theme.line },
-            ]}
+            style={[styles.saveBtn, { backgroundColor: hasText ? theme.accent : ctx.rgba(0.4) }]}
             onPress={handleSave}
             disabled={!hasText}
-            activeOpacity={0.85}
+            activeOpacity={0.9}
           >
-            <Text style={[
-              styles.saveBtnText,
-              { fontFamily: theme.fuiFamily, color: hasText ? '#FFF' : theme.inkFaint },
-            ]}>
-              Save idea
-            </Text>
+            <Text style={[styles.saveText, { fontFamily: ui(600) }]}>Save idea</Text>
           </TouchableOpacity>
+
+          <View style={styles.hint}>
+            <Icon name="chevronUp" size={13} color={theme.inkFaint} strokeWidth={2} />
+            <Text style={[styles.hintText, { fontFamily: ui(), color: theme.inkFaint }]}>Swipe up for the full editor</Text>
+          </View>
         </Animated.View>
       </KeyboardAvoidingView>
     </View>
@@ -234,107 +172,44 @@ export default function CaptureSheet() {
 }
 
 const styles = StyleSheet.create({
-  overlay: {
-    zIndex: 100,
-    justifyContent: 'flex-end',
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.35)',
-  },
-  kavOuter: {
-    justifyContent: 'flex-end',
-  },
+  overlay: { zIndex: 100, justifyContent: 'flex-end' },
+  backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(28,26,20,0.34)' },
+  kavOuter: { justifyContent: 'flex-end' },
   sheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingHorizontal: 20,
-    minHeight: SCREEN_H * 0.45,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    paddingHorizontal: 22,
+    minHeight: SCREEN_H * 0.42,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 20,
+    shadowOffset: { width: 0, height: -10 },
+    shadowOpacity: 0.18,
+    shadowRadius: 30,
     elevation: 20,
   },
-  handleArea: {
-    alignItems: 'center',
-    paddingVertical: 12,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  headerTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  cancelBtn: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  textarea: {
-    fontSize: 20,
-    lineHeight: 28,
-    minHeight: 100,
-    textAlignVertical: 'top',
-    marginBottom: 16,
-  },
-  tagsScroll: {
-    marginHorizontal: -20,
-    marginBottom: 12,
-  },
-  tagsContent: {
-    paddingHorizontal: 20,
-    gap: 8,
-  },
-  tagChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    borderWidth: 0,
-  },
-  tagText: {
-    fontSize: 13,
-    fontWeight: '500',
-  },
+  handleArea: { alignItems: 'center', paddingVertical: 8 },
+  handle: { width: 38, height: 4, borderRadius: 3 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  headerTitle: { fontSize: 18 },
+  cancel: { fontSize: 14 },
+  textarea: { fontSize: 20, lineHeight: 28, minHeight: 96, textAlignVertical: 'top' },
+  tagsScroll: { marginHorizontal: -22, marginTop: 6 },
+  tagsContent: { paddingHorizontal: 22, gap: 8, alignItems: 'center' },
+  chip: { borderWidth: 1, paddingHorizontal: 13, paddingVertical: 7, borderRadius: 20 },
+  chipText: { fontSize: 13 },
   newTagChip: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
+    gap: 3,
     borderWidth: 1,
     borderStyle: 'dashed',
-    gap: 2,
+    borderRadius: 20,
+    paddingLeft: 9,
+    paddingRight: 11,
+    paddingVertical: 5,
   },
-  newTagHash: {
-    fontSize: 13,
-    fontWeight: '600',
-  },
-  newTagInput: {
-    fontSize: 13,
-    minWidth: 44,
-    padding: 0,
-  },
-  swipeHint: {
-    fontSize: 12,
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  saveBtn: {
-    paddingVertical: 14,
-    borderRadius: 11,
-    alignItems: 'center',
-  },
-  saveBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
+  newTagInput: { fontSize: 13, minWidth: 44, padding: 0 },
+  saveBtn: { marginTop: 18, paddingVertical: 15, borderRadius: 14, alignItems: 'center' },
+  saveText: { fontSize: 15.5, color: '#fff' },
+  hint: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 12 },
+  hintText: { fontSize: 11.5 },
 });
